@@ -25,7 +25,6 @@ class MovieSearchViewModel: ObservableObject {
     
     convenience init() {
         self.init(apiService: MovieSearchAPIService())
-        setupSearchObserver()
     }
 
     private func setupSearchObserver() {
