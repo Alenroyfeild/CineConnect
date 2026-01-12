@@ -21,8 +21,12 @@ class MovieDetailViewModel: ObservableObject {
     
     private let apiService: MovieDetailAPIServiceProtocol
     
-    init(apiService: MovieDetailAPIServiceProtocol = MovieDetailAPIService()) {
+    init(apiService: MovieDetailAPIServiceProtocol) {
         self.apiService = apiService
+    }
+    
+    convenience init() {
+        self.init(apiService: MovieDetailAPIService())
     }
     
     func loadMovieDetail(slug: String) async {
