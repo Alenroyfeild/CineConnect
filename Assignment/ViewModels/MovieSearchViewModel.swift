@@ -18,8 +18,13 @@ class MovieSearchViewModel: ObservableObject {
     private let apiService: MovieSearchAPIServiceProtocol
     private var cancellables = Set<AnyCancellable>()
 
-    init(apiService: MovieSearchAPIServiceProtocol = MovieSearchAPIService()) {
+    init(apiService: MovieSearchAPIServiceProtocol) {
         self.apiService = apiService
+        setupSearchObserver()
+    }
+    
+    convenience init() {
+        self.init(apiService: MovieSearchAPIService())
         setupSearchObserver()
     }
 
