@@ -9,7 +9,7 @@ import Foundation
 import Combine
 
 @MainActor
-class MovieSearchViewModel: ObservableObject {
+final class MovieSearchViewModel: ObservableObject {
     @Published var searchText: String = ""
     @Published var searchResults: [Movie] = []
     @Published var isLoading = false
@@ -17,12 +17,13 @@ class MovieSearchViewModel: ObservableObject {
 
     private let apiService: MovieSearchAPIServiceProtocol
     private var cancellables = Set<AnyCancellable>()
+    private var searchTask: Task<Void, Never>?
 
     init(apiService: MovieSearchAPIServiceProtocol) {
         self.apiService = apiService
         setupSearchObserver()
     }
-    
+
     convenience init() {
         self.init(apiService: MovieSearchAPIService())
     }
@@ -32,16 +33,22 @@ class MovieSearchViewModel: ObservableObject {
             .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
             .removeDuplicates()
             .sink { [weak self] query in
-                guard let self = self else { return }
+                guard let self else { return }
 
-                if query.trimmingCharacters(in: .whitespaces).isEmpty {
-                    self.searchResults = []
+                let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+
+                if trimmed.isEmpty {
+                    self.searchTask?.cancel()
+                    self.isLoading = false
                     self.searchError = nil
+                    self.searchResults = []
                     return
                 }
 
-                Task {
-                    await self.search(query: query)
+                self.searchTask?.cancel()
+                self.searchTask = Task { [weak self] in
+                    guard let self else { return }
+                    await self.search(query: trimmed)
                 }
             }
             .store(in: &cancellables)
@@ -49,27 +56,27 @@ class MovieSearchViewModel: ObservableObject {
 
     private func search(query: String) async {
         isLoading = true
+        defer { isLoading = false }
+
         searchError = nil
-        searchResults = []
 
         do {
             let response = try await apiService.searchVideos(query: query)
-            
             try Task.checkCancellation()
-            
+
+            let latest = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard latest == query else { return }
+
             if response.isEmpty {
-                self.searchError = .noResults
+                searchError = .noResults
             } else {
-                self.searchResults = response
+                searchResults = response
             }
         } catch is CancellationError {
-            /// Ignore cancellation; we don't want to show an error UI if we just cancelled the task
-            return
+            // Ignore
         } catch {
-            self.searchError = .networkError
+            searchError = .networkError
         }
-
-        isLoading = false
     }
 }
 
@@ -77,7 +84,7 @@ enum SearchError {
     case noResults
     case networkError
     case unknown
-    
+
     var title: String {
         switch self {
         case .noResults:
@@ -86,7 +93,7 @@ enum SearchError {
             return "Something Went Wrong"
         }
     }
-    
+
     var message: String {
         switch self {
         case .noResults:
@@ -95,7 +102,7 @@ enum SearchError {
             return "We couldn't complete your search. Please try again."
         }
     }
-    
+
     var buttonText: String {
         switch self {
         case .noResults:
