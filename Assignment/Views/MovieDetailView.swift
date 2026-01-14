@@ -51,7 +51,7 @@ struct MovieDetailView: View {
     }
 
     private func errorView(error: DetailError) -> some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 16) {
             ZStack {
                 Circle()
                     .fill(AppTheme.errorGlow)
@@ -63,13 +63,15 @@ struct MovieDetailView: View {
                     .foregroundStyle(AppTheme.accentGradient)
             }
 
-            Text("Something Went Wrong")
-                .font(AppFont.headlineSmall)
-                .foregroundColor(AppTheme.textPrimary)
-
-            Text("Unable to load movie details")
-                .font(AppFont.bodyMedium)
-                .foregroundColor(AppTheme.textSecondary)
+            VStack(spacing: 8) {
+                Text("Something Went Wrong")
+                    .font(AppFont.titleMedium)
+                    .foregroundColor(AppTheme.textPrimary)
+                
+                Text("Unable to load movie details")
+                    .font(AppFont.bodyMedium)
+                    .foregroundColor(AppTheme.textSecondary)
+            }
 
             Button {
                 Task {
@@ -85,6 +87,7 @@ struct MovieDetailView: View {
                     .cornerRadius(12)
                     .shadow(color: AppTheme.accentSecondary.opacity(0.3), radius: 10, x: 0, y: 5)
             }
+            .padding(.top, 8)
         }
         .padding()
     }
@@ -97,7 +100,7 @@ struct MovieDetailView: View {
                 VStack(alignment: .leading, spacing: 24) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(detail.title)
-                            .font(AppFont.headlineLarge)
+                            .font(AppFont.headlineMedium)
                             .foregroundColor(AppTheme.textPrimary)
 
                         if let subtitle = detail.subtitle, !subtitle.isEmpty {
@@ -217,19 +220,19 @@ struct MovieDetailView: View {
     }
 
     private func descriptionCard(description: String) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("About")
-                .font(AppFont.headlineSmall)
+                .font(AppFont.titleLarge)
                 .foregroundColor(AppTheme.textPrimary)
 
             Text(description)
                 .font(AppFont.bodyLarge)
                 .foregroundColor(AppTheme.textSecondary)
-                .lineSpacing(8)
+                .lineSpacing(4)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(20)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(AppTheme.surfaceElevated)
         .clipShape(RoundedRectangle(cornerRadius: 16))
@@ -244,10 +247,10 @@ struct MovieDetailView: View {
     NavigationStack {
         MovieDetailView(
             movie: Movie(
-                id: "/in/movies/nanu-local/1260141777?search_query=Loca",
+                id: "/in/movies/nanu-local/1260141777?search_query=Nenu",
                 title: "Nanu Local",
                 subtitle: "2017  •  2h 12m  •  Kannada",
-                pageSlug: "/in/movies/nanu-local/1260141777?search_query=Loca",
+                pageSlug: "/in/movies/nanu-local/1260141777?search_query=Nenu",
                 posterURL: URL(string: "https://img1.hotstarext.com/image/upload/f_auto,t_web_m_1x/sources/r1/cms/prod/7297/1527297-h-b2349a817a4d")
             )
         )

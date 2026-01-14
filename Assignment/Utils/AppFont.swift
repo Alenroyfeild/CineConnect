@@ -27,9 +27,9 @@ struct AppFont {
     static let titleSmall = Font.system(size: 18, weight: .medium, design: .rounded)
     
     // MARK: - Body Fonts
-    static let bodyLarge = Font.system(size: 16, weight: .regular, design: .rounded)
-    static let bodyMedium = Font.system(size: 14, weight: .regular, design: .rounded)
-    static let bodySmall = Font.system(size: 12, weight: .regular, design: .rounded)
+    static let bodyLarge = Font.system(size: 17, weight: .regular, design: .rounded)
+    static let bodyMedium = Font.system(size: 15, weight: .regular, design: .rounded)
+    static let bodySmall = Font.system(size: 13, weight: .regular, design: .rounded)
     
     // MARK: - Label Fonts
     static let labelLarge = Font.system(size: 14, weight: .medium, design: .rounded)

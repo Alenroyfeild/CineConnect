@@ -77,7 +77,7 @@ struct MoviesListView: View {
     }
     
     private var emptyStateView: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 16) {
             ZStack {
                 Circle()
                     .fill(AppTheme.iconGlow)
@@ -88,22 +88,24 @@ struct MoviesListView: View {
                     .font(.system(size: 60))
                     .foregroundStyle(AppTheme.accentGradient)
             }
-
-            Text("Search for Movies")
-                .font(AppFont.headlineSmall)
-                .foregroundColor(AppTheme.textPrimary)
-
-            Text("Start typing to find your favorite movies")
-                .font(AppFont.bodyMedium)
-                .foregroundColor(AppTheme.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
+            
+            VStack(spacing: 8) {
+                Text("Search for Movies")
+                    .font(AppFont.titleMedium)
+                    .foregroundColor(AppTheme.textPrimary)
+                
+                Text("Start typing to find your favorite movies")
+                    .font(AppFont.bodyMedium)
+                    .foregroundColor(AppTheme.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+            }
         }
         .offset(y: -60)
     }
 
     private func errorView(error: SearchError) -> some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 16) {
             ZStack {
                 Circle()
                     .fill(AppTheme.errorGlow)
@@ -115,15 +117,17 @@ struct MoviesListView: View {
                     .foregroundStyle(AppTheme.accentGradient)
             }
 
-            Text(error.title)
-                .font(AppFont.headlineSmall)
-                .foregroundColor(AppTheme.textPrimary)
-
-            Text(error.message)
-                .font(AppFont.bodyLarge)
-                .foregroundColor(AppTheme.textSecondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 32)
+            VStack(spacing: 8) {
+                Text(error.title)
+                    .font(AppFont.titleMedium)
+                    .foregroundColor(AppTheme.textPrimary)
+                
+                Text(error.message)
+                    .font(AppFont.bodyMedium)
+                    .foregroundColor(AppTheme.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 32)
+            }
 
             Button(action: {
                 viewModel.searchText = ""
@@ -182,7 +186,7 @@ struct MovieSearchRowView: View {
         HStack(spacing: 12) {
             posterImage
             
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text(movie.title)
                     .font(AppFont.titleSmall)
                     .foregroundColor(AppTheme.textPrimary)
