@@ -1,97 +1,47 @@
 # CineConnect
 
-CineConnect is an iOS SwiftUI app (MVVM) that lets users browse and search movies, view a simple preview image, description, IMDb rating (if available), and duration. It uses a WebView\-based login flow to obtain authentication required for fetching data.
+CineConnect is a SwiftUI movie-browsing sample built around a remote catalog. It combines a native list/detail flow with debounced search, a reusable `URLSession` layer, and a UIKit `WKWebView` login screen embedded in SwiftUI.
 
-## Features
+> The app depends on a third-party streaming service's private web session and endpoints. Those can change without notice. This repository is best reviewed as an architecture and UI sample, not as an official client.
 
-- Movie browsing list UI
-- Movie details screen (image, description, IMDb rating if present, duration)
-- Search with debounced input (MVVM \+ Combine)
-- WebView login flow (WKWebView) to acquire auth/session
-- Async networking via a shared remote layer
+## Engineering highlights
 
-## Project Structure
+- **SwiftUI + UIKit interoperability:** `LoginViewController` hosts `WKWebView`; `LoginView` bridges it into the SwiftUI flow.
+- **MVVM state flow:** separate search and detail view models own loading, success, and error state.
+- **Debounced search:** Combine avoids issuing a request for every keystroke.
+- **Structured networking:** endpoint definitions, request construction, interceptors, response validation, DTO decoding, and domain mapping are separated.
+- **Async work:** view models coordinate network calls using Swift concurrency.
+
+## User flow
+
+```text
+Web login → session captured → movie search/list → movie detail
+```
+
+The list shows movie artwork and summary data. Selecting a movie loads its description, duration, and IMDb rating when those fields are returned by the service.
+
+## Project structure
 
 ```text
 Assignment/
-├── AssignmentApp.swift
-├── Assets.xcassets/
-├── Models/
-│   ├── Movie.swift
-│   ├── MovieDetail.swift
-│   └── DTOs/
-│       ├── MovieDetailDTO.swift
-│       └── MovieSearchDTO.swift
+├── Models/             Domain models and API DTOs
 ├── Services/
-│   ├── BaseAPIService.swift
-│   ├── Endpoints.swift
-│   ├── MovieDetailAPIService.swift
-│   ├── MovieSearchAPIService.swift
-│   └── Remote/
-│       ├── Constants.swift
-│       ├── Convertables.swift
-│       ├── Interceptors.swift
-│       ├── RemoteError.swift
-│       ├── RemoteService.swift
-│       ├── Request.swift
-│       └── Response.swift
-├── Utils/
-│   ├── AppFont.swift
-│   ├── AppTheme.swift
-│   └── AuthManager.swift
-├── ViewModels/
-│   ├── MovieDetailViewModel.swift
-│   └── MovieSearchViewModel.swift
-└── Views/
-    ├── LoadingSpinner.swift
-    ├── MovieDetailView.swift
-    ├── MoviesListView.swift
-    └── Login/
-        ├── LoginView.swift
-        └── LoginViewController.swift
+│   ├── Remote/         Request, response, interceptor, and error primitives
+│   └── *APIService     Feature-specific endpoints
+├── ViewModels/         Search and detail presentation state
+├── Views/              SwiftUI screens and WKWebView bridge
+└── Utils/              Session state, theme, and font helpers
 ```
 
-## Architecture
+## Build and run
 
-The app follows **MVVM**\:
-
-- **Views** in `Views/` render UI with SwiftUI.
-- **ViewModels** in `ViewModels/` manage state, user actions, and async tasks.
-- **Services** in `Services/` perform networking and endpoint coordination.
-- **Models** in `Models/` represent app domain objects, while `Models/DTOs/` map API payloads.
-
-## Authentication
-
-Login is handled through `Views/Login/` using `WKWebView` (UIKit integration).  
-`Utils/AuthManager.swift` manages auth/session state (token and/or cookies depending on the implementation). Services use this auth state when performing requests.
-
-## Networking Layer
-
-Networking is implemented under `Services/Remote/` with shared request/response types and error handling. Feature services like:
-
-- `Services/MovieSearchAPIService.swift`
-- `Services/MovieDetailAPIService.swift`
-
-build requests using `Services/Endpoints.swift` and the base abstractions in `Services/BaseAPIService.swift`.
-
-## Requirements
-
-- macOS with Xcode
-- iOS target supported by the project (per Xcode settings)
-- SwiftUI
-- Network access for API calls
-- A valid account for the streaming platform login flow (if required for auth)
-
-## Build \& Run
-
-1. Open `Assignment/Assignment.xcodeproj` in Xcode.
-2. Select a simulator or device.
+1. Open `Assignment.xcodeproj` in Xcode.
+2. Choose an iOS simulator or device compatible with the deployment target in the project.
 3. Build and run.
+4. Complete the web login if the third-party service still permits the flow.
 
-## Testing
+There is no test target yet. The most valuable next tests are request construction, DTO-to-domain mapping, and view-model state transitions with an injected service.
 
-If tests are added to the project, run them in Xcode via **Product \> Test** (or `⌘` \+ `U`).
+## Scope and ownership
 
-## License
-
-Educational/demo use only. Any referenced trademarks, branding, and media content belong to their respective owners.
+This is an independent educational sample. Disney+ Hotstar, IMDb, their marks, media, and services belong to their respective owners. No affiliation or endorsement is claimed.
