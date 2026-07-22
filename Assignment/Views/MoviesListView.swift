@@ -9,12 +9,12 @@ import SwiftUI
 
 struct MoviesListView: View {
     @EnvironmentObject var authManager: AuthManager
+    var onLogout: (() -> Void)?
     @StateObject private var viewModel = MovieSearchViewModel()
     @State private var showingLogoutAlert = false
 
     var body: some View {
-        NavigationStack {
-            ZStack {
+        ZStack {
                 AppTheme.primaryGradient
                     .ignoresSafeArea()
                 
@@ -55,7 +55,6 @@ struct MoviesListView: View {
             } message: {
                 Text("Are you sure you want to logout?")
             }
-        }
     }
 
     private var smoothLoadingView: some View {
@@ -160,21 +159,13 @@ struct MoviesListView: View {
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
         }
-        .navigationDestination(for: Movie.self) { movie in
-            MovieDetailView(movie: movie)
-        }
     }
     
     private func logout() {
         print("🚪 User initiated logout")
         
-        authManager.logout { [self] in
-            DispatchQueue.main.async {
-                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                   let window = windowScene.windows.first {
-                    authManager.navigateToLogin(from: window)
-                }
-            }
+        authManager.logout {
+            onLogout?()
         }
     }
 }

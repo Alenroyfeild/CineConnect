@@ -9,19 +9,12 @@ import SwiftUI
 
 @main
 struct AssignmentApp: App {
-    @StateObject private var authManager = AuthManager.shared
+    @StateObject private var appCoordinator = AppCoordinator()
     
     var body: some Scene {
         WindowGroup {
-            Group {
-                if authManager.isLoggedIn {
-                    MoviesListView()
-                        .environmentObject(authManager)
-                } else {
-                    LoginView()
-                        .environmentObject(authManager)
-                }
-            }
+            appCoordinator.makeRootView()
+                .onAppear { appCoordinator.start() }
         }
     }
 }
