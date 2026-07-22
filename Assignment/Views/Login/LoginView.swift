@@ -10,8 +10,12 @@ import SwiftUI
 import WebKit
 
 struct LoginView: UIViewControllerRepresentable {
+    var onAuthenticated: (() -> Void)?
+
     func makeUIViewController(context: Context) -> LoginViewController {
-        return LoginViewController()
+        let controller = LoginViewController()
+        controller.onAuthenticated = onAuthenticated
+        return controller
     }
     
     func updateUIViewController(_ uiViewController: LoginViewController, context: Context) {}

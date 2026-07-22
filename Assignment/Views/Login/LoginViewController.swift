@@ -10,6 +10,7 @@ import WebKit
 import SwiftUI
 
 class LoginViewController: UIViewController {
+    var onAuthenticated: (() -> Void)?
     private var webView: WKWebView!
     private let loginURL = "https://www.hotstar.com/in/subscribe"
     private var hasExtractedCredentials = false
@@ -252,19 +253,7 @@ class LoginViewController: UIViewController {
     // MARK: - Navigation
 
     private func navigateToMainApp() {
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let window = windowScene.windows.first else { return }
-
-        let moviesView = MoviesListView()
-            .environmentObject(AuthManager.shared)
-
-        let hostingController = UIHostingController(rootView: moviesView)
-
-        UIView.transition(with: window, duration: 0.3, options: .transitionCrossDissolve) {
-            window.rootViewController = hostingController
-        }
-
-        window.makeKeyAndVisible()
+        onAuthenticated?()
     }
 }
 
