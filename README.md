@@ -11,6 +11,8 @@ CineConnect is a SwiftUI movie-browsing sample built around a remote catalog. It
 - **Debounced search:** Combine avoids issuing a request for every keystroke.
 - **Structured networking:** endpoint definitions, request construction, interceptors, response validation, DTO decoding, and domain mapping are separated.
 - **Async work:** view models coordinate network calls using Swift concurrency.
+- **Coordinator-owned navigation:** `AppCoordinator` selects the auth or movies flow, while child coordinators own their feature destinations.
+- **Offline-first responses:** successful movie searches and details are persisted as Codable JSON and used when a later network request fails.
 
 ## User flow
 
@@ -24,14 +26,38 @@ The list shows movie artwork and summary data. Selecting a movie loads its descr
 
 ```text
 Assignment/
+├── Coordinators/       App, auth, and movies navigation ownership
 ├── Models/             Domain models and API DTOs
 ├── Services/
+│   ├── Cache/          Codable-to-disk movie response cache
 │   ├── Remote/         Request, response, interceptor, and error primitives
 │   └── *APIService     Feature-specific endpoints
 ├── ViewModels/         Search and detail presentation state
 ├── Views/              SwiftUI screens and WKWebView bridge
 └── Utils/              Session state, theme, and font helpers
 ```
+
+## Architecture
+
+```mermaid
+flowchart TD
+    Entry["AssignmentApp.swift"] --> App["AppCoordinator"]
+    App --> Auth["AuthCoordinator"]
+    App --> Movies["MoviesCoordinator"]
+    Auth --> Login["LoginView / LoginViewController"]
+    Movies --> List["MoviesListView"]
+    Movies --> Detail["MovieDetailView"]
+    List --> SearchVM["MovieSearchViewModel"]
+    Detail --> DetailVM["MovieDetailViewModel"]
+    SearchVM --> SearchAPI["MovieSearchAPIService"]
+    DetailVM --> DetailAPI["MovieDetailAPIService"]
+    SearchAPI --> Remote["RemoteService"]
+    DetailAPI --> Remote
+    SearchAPI -. fallback .-> Cache["MovieCache"]
+    DetailAPI -. fallback .-> Cache
+```
+
+The API services try the existing remote path first, save successful domain responses, and read the matching cached response only when the request fails. The cache is optional and isolated from authentication and navigation state.
 
 ## Build and run
 
