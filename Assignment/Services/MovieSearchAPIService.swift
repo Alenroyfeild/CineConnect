@@ -12,6 +12,13 @@ protocol MovieSearchAPIServiceProtocol {
 }
 
 class MovieSearchAPIService: BaseAPIService, MovieSearchAPIServiceProtocol {
+    private let cache: MovieCache
+
+    init(remoteService: RemoteService = .shared, cache: MovieCache = .shared) {
+        self.cache = cache
+        super.init(remoteService: remoteService)
+    }
+
     func searchVideos(query: String) async throws -> [Movie] {
         guard let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
             throw RemoteError.invalidURL
@@ -34,12 +41,16 @@ class MovieSearchAPIService: BaseAPIService, MovieSearchAPIServiceProtocol {
         
         do {
             let moviesSearchDTO: MovieSearchDTO = try await remoteService.execute(request: .init(url: URL(string: "\(baseURL)")!, method: Endpoints.searchMovies.method, parameters: parameters))
-            return moviesSearchDTO.toMovies()
+            let movies = moviesSearchDTO.toMovies()
+            cache.saveSearch(movies, query: query)
+            return movies
         } catch let error as DecodingError {
             throw RemoteError.parsingError(error: error)
         } catch let error as RemoteError {
+            if let cached = cache.loadSearch(query: query) { return cached }
             throw error
         } catch {
+            if let cached = cache.loadSearch(query: query) { return cached }
             throw RemoteError.unknown(error: error)
         }
     }
