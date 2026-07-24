@@ -14,6 +14,12 @@ CineConnect is a SwiftUI movie-browsing sample built around a remote catalog. It
 - **Coordinator-owned navigation:** `AppCoordinator` selects the auth or movies flow, while child coordinators own their feature destinations.
 - **Offline-first responses:** successful movie searches and details are persisted as Codable JSON and used when a later network request fails.
 
+## Coordinator: what this app shows and doesn't
+
+This is a **SwiftUI coordinator** example. `AppCoordinator` switches the root between auth and movies using `@Published` state; `MoviesCoordinator` supplies a `NavigationStack` and `navigationDestination`. Root, authentication, and logout transitions are coordinator-driven, while list → detail is driven by SwiftUI's `NavigationLink` and value-based destination.
+
+That differs from a classic UIKit coordinator built around `UINavigationController`: the coordinator would call `pushViewController`, retain child coordinators in a `childCoordinators` array, remove a child when it calls `childDidFinish`, and usually hold its parent weakly to avoid a retain cycle. This app demonstrates the ownership and flow idea, but it is not a UIKit `UINavigationController` coordinator implementation.
+
 ## User flow
 
 ```text
