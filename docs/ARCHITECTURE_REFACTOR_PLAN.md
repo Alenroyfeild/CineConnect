@@ -1,20 +1,123 @@
 # CineConnect — Architecture Refactor Plan
 
-Status: Phase 0 (baseline audit). Verified against `feature-cineconnect-mvvm-coordinator` at commit `803fcc1` on 2026-07-29.
+Status: Phase 0 (baseline audit + security remediation complete). Originally
+verified against `feature-cineconnect-mvvm-coordinator` at commit `803fcc1`
+on 2026-07-29; branch/commit references below predate the history rewrite
+described in §0 and are kept as originally written for audit-trail purposes.
 
-## 0. Critical finding (read first)
+## 0. Critical finding — RESOLVED
 
-`Assignment/Services/Remote/Constants.swift` hardcodes a real-looking Hotstar
-`x-hs-usertoken` JWT together with what decodes to a name (`Balaji Royal`), a
-phone number, device IDs, and subscription/expiry data. This has been present
-since the repository's `initial changes` commit (`03b7653`) and is already on
-`origin/main` of the **public** GitHub repository `Alenroyfeild/CineConnect`.
-The constant (`Remote.Constants.defaultHeaders`) is currently **dead code** —
-nothing in the app calls it — but the value itself is already public.
+`Assignment/Services/Remote/Constants.swift` hardcoded a real-looking Hotstar
+`x-hs-usertoken` JWT together with what decodes to a name, a phone number,
+device IDs, and subscription/expiry data. It had been present since the
+repository's first commit and was already public on GitHub. The constant was
+dead code — nothing in the app called it.
 
-This is treated as a live disclosure, not a refactor-time cleanup, and is
-tracked separately from the architecture work. See the chat message that
-accompanies this plan for remediation options; none have been applied yet.
+Remediation completed 2026-07-29: the file was removed from active source,
+repository history was rewritten with `git-filter-repo` to redact the value
+from every commit on every branch, the rewritten history was force-pushed
+to all four affected branches, and a local + CI secret scanner
+(`scripts/check-secrets.sh`, `.github/workflows/secret-scan.yml`) was added.
+Full detail lives in `SECURITY.md` and the chat record of that operation;
+this plan doc doesn't repeat the sensitive-handling steps.
+
+**Consequence for this doc:** because the history rewrite touched the
+repository's root commit, every commit SHA on every branch changed. Any SHA
+referenced below from the original Phase 0 audit (e.g. `803fcc1`, `03b7653`)
+is a **pre-rewrite** identifier, kept for continuity with the original
+audit narrative, not a live commit you can `git show` today.
+
+## 0b. Branch model
+
+Three branches matter to this migration; here's what each one is for and
+how they relate, since they're easy to conflate:
+
+- **`main`** — the repository's default/release branch. It does *not* yet
+  contain any of the coordinator/MVVM work below; it's the pre-refactor
+  baseline (the original single-file, singleton-heavy app plus the
+  post-incident security commits, which were force-pushed to every branch
+  including this one since the credential was in the root commit).
+- **`feature-cineconnect-mvvm-coordinator`** — where the CC0–CC4 commits
+  (see §1b) were made: the first pass at introducing a coordinator layer,
+  the offline-first movie cache, and architecture-baseline documentation.
+  It is *ahead of* `main` but was never merged into it. It also received
+  the security force-push (it shares the same root commit as everything
+  else) but no new feature commits since CC4.
+- **`refactor/mvvm-coordinator-architecture`** (this branch, current HEAD)
+  — branched from `feature-cineconnect-mvvm-coordinator`, not from `main`.
+  This is deliberate: the CC0–CC4 work is real, relevant progress toward
+  the requested architecture (see §1b for what's kept vs. redone), and
+  restarting from `main` would have meant re-deriving it from scratch for
+  no benefit. All further migration work (Phase 0 security cleanup
+  onward) lands here. It will eventually need a PR back into `main`
+  covering both the CC0–CC4 work and everything built on top of it in this
+  branch.
+- **`agent/improve-ios-showcase`** — an unrelated prior branch (PR #1,
+  documentation-only), not part of this migration; mentioned here only
+  because it shares root history and was therefore also force-pushed
+  during the security remediation.
+
+## 1b. CC0–CC4 audit — what prior work already did, and what to do with it
+
+The `feature-cineconnect-mvvm-coordinator` branch (commits `1ece177` CC0
+through `03bdd4c`/`4e29c6f`/`803fcc1` CC4, pre-rewrite SHAs) already moved
+the app some distance toward the target architecture before this session
+started. Reviewed against the target architecture rules (not assumed
+correct merely because it exists):
+
+| Piece | What CC0–CC4 did | Verdict |
+|---|---|---|
+| `Coordinator` protocol | Introduced `@MainActor protocol Coordinator { associatedtype Content: View; func makeView() -> Content }` | **Retain as-is.** Matches the target design; no changes needed. |
+| `AppCoordinator` | Introduced `Root` enum (`.auth`/`.movies`), `@Published private(set) var root`, creates both child coordinators, wires their completion closures | **Retain, refactor its dependencies.** The switching logic is sound; the problem is `init(authManager: AuthManager = .shared)` and its children's matching defaults — DI seam is missing, not the coordinator concept. |
+| `AuthCoordinator` | Thin wrapper creating `LoginView` bound to `AuthManager`, forwarding `onAuthenticated` | **Retain, refactor its dependency, rename for doc consistency.** Will become `AuthenticationCoordinator` (cosmetic rename to match the working session's naming, done as a mechanical part of Phase 1, not a separate rename phase) and take an injected auth dependency instead of `.shared`. |
+| `MoviesCoordinator` | Owns a `NavigationStack`, pushes `MovieDetailView` via `.navigationDestination(for: Movie.self)` | **Retain, refactor in Phase 2.** This already fixed the original audit's "navigation lives inside `MoviesListView`" complaint — genuine progress. What's missing: a typed `MoviesRoute` (today `Movie` itself is the nav value) and explicit `NavigationPath` ownership (today it relies on `NavigationStack`'s implicit path) — both scoped to Phase 2, not redone from scratch. |
+| `MovieCache` | Added a simple file-backed cache consulted only on request failure | **Retain the concept, replace the implementation.** The "network is source of truth, cache is fallback-only" policy is a reasonable one to keep, but the type itself becomes two actors (`MemoryCache` + `DiskCache`) with TTL/eviction/logout-invalidation in Phase 6 — today's `MovieCache` has none of that and isn't concurrency-safe by design (just isolated by luck of being called serially). |
+| `CineConnect-architecture-current.md` (CC0 doc) | Documented the pre-coordinator baseline | **Retain as historical record**; superseded going forward by `docs/ARCHITECTURE.md` (Phase 9), not deleted. |
+
+Not yet touched by CC0–CC4 (confirmed still true in this audit, see §1):
+DI/composition root, `RemoteService`/`AuthManager` singletons, the
+`isSuccess`/double-encoding bugs, `MovieCache` concurrency safety, any test
+target, the image pipeline, and the `Assignment`→`CineConnect` naming.
+
+## 1c. Coordinator/navigation audit (retain / refactor / merge / rename / replace / remove)
+
+Per-item disposition, so Phase 1–2 don't duplicate or parallel the existing
+system:
+
+- **`Coordinator` protocol** — Retain, unchanged.
+- **`AppCoordinator`** — Retain & refactor. Keep `Root` switching; change its
+  initializer to accept dependencies from `AppDependencyContainer` instead
+  of defaulting to `AuthManager.shared`; move from a one-shot `start()`
+  computation to reacting to an observable authentication-state source.
+- **`AuthCoordinator` → `AuthenticationCoordinator`** — Retain & refactor
+  (rename for consistency with the rest of this doc set and the
+  `Features/Authentication/Coordinator/` location it moves to). Same
+  singleton-default fix as `AppCoordinator`.
+- **`MoviesCoordinator`** — Retain & refactor, but the `MoviesRoute` /
+  explicit `NavigationPath` work stays in Phase 2 as originally scoped;
+  Phase 1 only removes its `AuthManager.shared` default parameter.
+- **Route types** — None exist yet beyond pushing `Movie` directly; net-new
+  in Phase 2, not a replacement of an existing route type.
+- **`NavigationPath` ownership** — Currently implicit (owned by
+  `NavigationStack` itself via `.navigationDestination`); becomes an
+  explicit `@Published var path: NavigationPath` on `MoviesCoordinator` in
+  Phase 2, to support deep links and programmatic pop/reset later.
+- **View factories** — `makeView()` on each coordinator is retained as the
+  factory point; what changes is *what* they construct (injected
+  dependencies vs. convenience-init defaults), not the factory pattern
+  itself.
+- **Child-coordinator ownership** — `AppCoordinator` owning `let
+  authCoordinator` / `let moviesCoordinator` as stored properties is
+  retained; construction moves from self-constructed-with-defaults to
+  container-provided.
+- **Authentication transitions** — Closure-based (`onAuthenticated`,
+  `onLogout`) is retained as the bridge mechanism; see
+  `docs/SWIFTUI_UIKIT_INTEROPERABILITY.md` (Phase 5) for why closures over
+  delegates here.
+
+**No parallel/legacy coordinator system exists to merge away** — there is
+exactly one coordinator hierarchy in the codebase today, and every decision
+above is "refactor in place," not "build a second system and cut over."
 
 ## 1. Current-state audit
 
