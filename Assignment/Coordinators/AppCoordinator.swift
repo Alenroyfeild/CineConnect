@@ -10,13 +10,16 @@ final class AppCoordinator: ObservableObject {
 
     @Published private(set) var root: Root
     let authManager: AuthManager
-    let authCoordinator: AuthCoordinator
+    let authCoordinator: AuthenticationCoordinator
     let moviesCoordinator: MoviesCoordinator
 
-    init(authManager: AuthManager = .shared) {
+    /// Dependencies are always supplied by `AppDependencyContainer` - no
+    /// default parameter here, so nothing can silently fall back to
+    /// `AuthManager.shared`.
+    init(authManager: AuthManager) {
         self.authManager = authManager
         self.root = authManager.isAuthenticated() ? .movies : .auth
-        self.authCoordinator = AuthCoordinator(authManager: authManager)
+        self.authCoordinator = AuthenticationCoordinator(authManager: authManager)
         self.moviesCoordinator = MoviesCoordinator(authManager: authManager)
 
         authCoordinator.onAuthenticated = { [weak self] in

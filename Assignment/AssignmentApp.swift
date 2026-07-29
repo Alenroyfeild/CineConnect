@@ -9,8 +9,15 @@ import SwiftUI
 
 @main
 struct AssignmentApp: App {
-    @StateObject private var appCoordinator = AppCoordinator()
-    
+    private let dependencyContainer: AppDependencyContainer
+    @StateObject private var appCoordinator: AppCoordinator
+
+    init() {
+        let container = AppDependencyContainer()
+        dependencyContainer = container
+        _appCoordinator = StateObject(wrappedValue: container.makeAppCoordinator())
+    }
+
     var body: some Scene {
         WindowGroup {
             appCoordinator.makeRootView()

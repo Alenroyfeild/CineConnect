@@ -1,11 +1,13 @@
 import SwiftUI
 
 @MainActor
-final class AuthCoordinator: Coordinator {
+final class AuthenticationCoordinator: Coordinator {
     let authManager: AuthManager
     var onAuthenticated: (() -> Void)?
 
-    init(authManager: AuthManager = .shared) {
+    /// No default parameter - always supplied by `AppCoordinator`/
+    /// `AppDependencyContainer`, never `AuthManager.shared` directly.
+    init(authManager: AuthManager) {
         self.authManager = authManager
     }
 
