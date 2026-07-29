@@ -24,10 +24,6 @@ final class MovieSearchViewModel: ObservableObject {
         setupSearchObserver()
     }
 
-    convenience init() {
-        self.init(apiService: MovieSearchAPIService())
-    }
-
     private func setupSearchObserver() {
         $searchText
             .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)

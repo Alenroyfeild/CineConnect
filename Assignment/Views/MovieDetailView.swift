@@ -10,7 +10,14 @@ import SwiftUI
 struct MovieDetailView: View {
     let movie: Movie
 
-    @StateObject private var viewModel = MovieDetailViewModel()
+    @StateObject private var viewModel: MovieDetailViewModel
+
+    /// Production call sites go through `MoviesCoordinator`, which supplies
+    /// the view model - this view never constructs its own API service.
+    init(movie: Movie, viewModel: MovieDetailViewModel) {
+        self.movie = movie
+        _viewModel = StateObject(wrappedValue: viewModel)
+    }
 
     var body: some View {
         ZStack {
@@ -252,7 +259,8 @@ struct MovieDetailView: View {
                 subtitle: "2017  •  2h 12m  •  Kannada",
                 pageSlug: "/in/movies/nanu-local/1260141777?search_query=Nenu",
                 posterURL: URL(string: "https://img1.hotstarext.com/image/upload/f_auto,t_web_m_1x/sources/r1/cms/prod/7297/1527297-h-b2349a817a4d")
-            )
+            ),
+            viewModel: MovieDetailViewModel(apiService: MovieDetailAPIService())
         )
     }
 }

@@ -10,8 +10,15 @@ import SwiftUI
 struct MoviesListView: View {
     @EnvironmentObject var authManager: AuthManager
     var onLogout: (() -> Void)?
-    @StateObject private var viewModel = MovieSearchViewModel()
+    @StateObject private var viewModel: MovieSearchViewModel
     @State private var showingLogoutAlert = false
+
+    /// Production call sites go through `MoviesCoordinator`, which supplies
+    /// the view model - this view never constructs its own API service.
+    init(viewModel: MovieSearchViewModel, onLogout: (() -> Void)? = nil) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+        self.onLogout = onLogout
+    }
 
     var body: some View {
         ZStack {
@@ -150,7 +157,7 @@ struct MoviesListView: View {
         ScrollView {
             LazyVStack(spacing: 12) {
                 ForEach(viewModel.searchResults) { movie in
-                    NavigationLink(value: movie) {
+                    NavigationLink(value: MoviesRoute.detail(movie)) {
                         MovieSearchRowView(movie: movie)
                     }
                     .buttonStyle(.plain)
@@ -257,5 +264,7 @@ struct MovieSearchRowView: View {
 }
 
 #Preview {
-    MoviesListView()
+    // Uses the real API service, same as before this refactor - a mockable
+    // MovieRepository for previews arrives with the Phase 3 repository layer.
+    MoviesListView(viewModel: MovieSearchViewModel(apiService: MovieSearchAPIService()))
 }
