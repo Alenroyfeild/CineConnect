@@ -15,10 +15,27 @@ public protocol ResponseInterceptor {
     func intercept(response: Response) async throws -> Response
 }
 
+/// What `AuthenticationInterceptor` needs from a credentials source -
+/// nothing more. `AuthManager` conforms today (see `AuthManager.swift`);
+/// a future Keychain-backed `CredentialsStore` (Phase 5) can conform
+/// instead without this interceptor changing at all.
+protocol AuthHeaderProviding {
+    func getHeaders() -> [String: String]
+}
+
 final class AuthenticationInterceptor: RequestInterceptor {
+    private let headerProvider: AuthHeaderProviding
+
+    /// No default parameter, no `AuthManager.shared` reference - injected
+    /// explicitly by whoever builds this interceptor (today,
+    /// `AppDependencyContainer`).
+    init(headerProvider: AuthHeaderProviding) {
+        self.headerProvider = headerProvider
+    }
+
     func intercept(_ request: URLRequest) async throws -> URLRequest {
         var modifiedRequest = request
-        for header in AuthManager.shared.getHeaders() {
+        for header in headerProvider.getHeaders() {
             modifiedRequest.setValue(header.value, forHTTPHeaderField: header.key)
         }
         return modifiedRequest

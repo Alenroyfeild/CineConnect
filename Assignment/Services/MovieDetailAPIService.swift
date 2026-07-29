@@ -35,12 +35,10 @@ class MovieDetailAPIService: BaseAPIService, MovieDetailAPIServiceProtocol {
             }
 
             return movieDetail
-        } catch let error as DecodingError {
-            throw RemoteError.parsingError(error: error)
-        } catch let error as RemoteError {
-            throw error
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
-            throw RemoteError.unknown(error: error)
+            throw RemoteError.from(error)
         }
     }
 }

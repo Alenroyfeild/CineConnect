@@ -251,9 +251,10 @@ struct MovieDetailView: View {
 }
 
 #Preview {
+    let remoteService = RemoteService()
     let repository = DefaultMovieRepository(
-        searchAPIService: MovieSearchAPIService(),
-        detailAPIService: MovieDetailAPIService()
+        searchAPIService: MovieSearchAPIService(remoteService: remoteService),
+        detailAPIService: MovieDetailAPIService(remoteService: remoteService)
     )
     return NavigationStack {
         MovieDetailView(

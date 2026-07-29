@@ -27,7 +27,7 @@ when each piece landed.
 | Unit test target (Swift Testing) + UI test target (XCTest) | Implemented and verified |
 | Security remediation (credential removal, history scrub, secret scanning) | Implemented and verified — see `../SECURITY.md` |
 | Domain/repository/DTO/mapper boundary (`MovieRepository`, `DefaultMovieRepository`, use cases) | Implemented and verified |
-| Networking rewrite (typed client, retry, `200..<300` fix, encoding fix) | Planned (Phase 4) |
+| Networking (retry policy, `200..<300` fix, encoding fix, injected interceptor, structured errors) | Implemented and verified |
 | Credentials store / UIKit auth bridge rework | Planned (Phase 5) |
 | Actor-based memory/disk caches, request coalescing | Planned (Phase 6) |
 | Combine/cancellation hardening | Planned (Phase 7 — the debounced search pipeline itself already exists from before this migration; Phase 7 is about hardening and documenting it, not building it from scratch) |
@@ -40,11 +40,12 @@ when each piece landed.
 2. `Architecture/Phase-01-Composition-Root-and-Coordinators.md`
 3. `Architecture/Phase-02-Movies-Navigation-and-MVVM.md`
 4. `Architecture/Phase-03-Domain-and-Repository.md`
-5. `FILE_INDEX.md` — once you want file-by-file depth.
-6. `CONCEPT_TO_CODE_MAP.md` — once you want concept-first navigation instead of file-first.
+5. `Architecture/Phase-04-Networking.md`
+6. `FILE_INDEX.md` — once you want file-by-file depth.
+7. `CONCEPT_TO_CODE_MAP.md` — once you want concept-first navigation instead of file-first.
 
-Phase 4 (networking rewrite) is next; its doc will appear here once that
-phase actually lands.
+Phase 5 (credentials store / UIKit auth bridge) is next; its doc will
+appear here once that phase actually lands.
 
 ## Code-reading order
 

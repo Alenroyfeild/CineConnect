@@ -31,6 +31,9 @@ are never left referenced here under their old name.
 | `AssignmentTests/Fakes/FakeMovieRepository.swift` | Test doubles | `final class` | Configurable fake `MovieRepository` | Phase 3 | `MovieRepository` | Use-case and ViewModel tests | (is a fake, not a test) | Result-based configuration, per-query delay for race tests |
 | `AssignmentTests/Fakes/FakeMovieAPIServices.swift` | Test doubles | `final class` (x2) | Configurable fakes for the remote-data-source protocols | Phase 3 | `MovieSearchAPIServiceProtocol`, `MovieDetailAPIServiceProtocol` | `DefaultMovieRepositoryTests` | (is a fake, not a test) | Testing the repository's own logic without faking a whole `MovieRepository` |
 | `AssignmentTests/DefaultMovieRepositoryTests.swift` | Tests | `@MainActor struct` | Verifies cache-fallback + cancellation policy | Phase 3 | `DefaultMovieRepository`, both fake API services | — | (is the test) | Real `MovieCache` pointed at a temp directory, not mocked |
+| `Assignment/Services/Remote/RetryPolicy.swift` | Networking | `struct` | Bounded exponential-backoff retry decision, GET-only | Phase 4 | — | `RemoteService` | `RetryPolicyTests` (7) | Pure decision function, injectable sleep for fast tests |
+| `Assignment/Services/Remote/Interceptors.swift` (`AuthHeaderProviding`) | Networking | `protocol` | Credentials-provider seam for `AuthenticationInterceptor` | Phase 4 | — | `AuthenticationInterceptor`; implemented by `AuthManager` | `RemoteServiceTests.requestInterceptorHeadersReachTheFinalRequest` | Protocol replacing a direct singleton reference |
+| `AssignmentTests/Fakes/StubURLProtocol.swift` | Test doubles | `final class: URLProtocol` | Intercepts `URLSession` traffic for deterministic networking tests | Phase 4 | — | `RemoteServiceTests` | (is a fake, not a test) | Shared static state - requires `.serialized` in its consuming suite |
 
 ## Detailed entries
 

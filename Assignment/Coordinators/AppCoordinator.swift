@@ -14,13 +14,13 @@ final class AppCoordinator: ObservableObject {
     let moviesCoordinator: MoviesCoordinator
 
     /// Dependencies are always supplied by `AppDependencyContainer` - no
-    /// default parameter here, so nothing can silently fall back to
-    /// `AuthManager.shared`.
-    init(authManager: AuthManager) {
+    /// default parameters here, so nothing can silently fall back to
+    /// `AuthManager.shared`/a standalone `RemoteService`.
+    init(authManager: AuthManager, remoteService: RemoteService) {
         self.authManager = authManager
         self.root = authManager.isAuthenticated() ? .movies : .auth
         self.authCoordinator = AuthenticationCoordinator(authManager: authManager)
-        self.moviesCoordinator = MoviesCoordinator(authManager: authManager)
+        self.moviesCoordinator = MoviesCoordinator(authManager: authManager, remoteService: remoteService)
 
         authCoordinator.onAuthenticated = { [weak self] in
             self?.showMovies()

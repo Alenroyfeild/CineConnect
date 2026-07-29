@@ -244,7 +244,80 @@ directly (Phase 4); the known `isSuccess`/double-encoding bugs untouched
 
 ---
 
-## Phase 4 onward
+## Phase 4 — Networking bug fixes, retry, injected interceptor
+
+**Previous design:** `isSuccess` only accepted exactly HTTP 200; search
+queries were percent-encoded twice; no retry policy existed;
+`AuthenticationInterceptor` read `AuthManager.shared` directly;
+`RemoteErrorResponse` was decoded by nothing; `BaseAPIService` still
+defaulted `remoteService` to `.shared`; `Remote.Request` had two dead,
+unused private methods duplicating `RemoteService`'s own request-building.
+
+**New design:** `isSuccess` fixed to `(200..<300).contains(statusCode)`;
+double-encoding removed (the pre-encoding call, not `RemoteService`'s own
+`URLQueryItem` encoding, was the bug); added `RetryPolicy` (bounded
+exponential backoff, method-gated to GET only, injectable sleep for fast
+tests); `RemoteService.execute` now attempts `RemoteErrorResponse`
+decoding on failure before falling back to `.general`; added
+`AuthHeaderProviding`, which `AuthManager` conforms to, so
+`AuthenticationInterceptor` takes an injected provider instead of reading
+the singleton; removed `RemoteService.shared` entirely, building the one
+instance in `AppDependencyContainer` and threading it through
+`AppCoordinator` -> `MoviesCoordinator` -> both API services; deleted the
+two dead `Remote.Request` methods.
+
+**Files changed:** see `Architecture/Phase-04-Networking.md` §4-6.
+
+**Runtime behavior:** unchanged for the user under normal conditions.
+Behavior *fixed*: a 201/204 response no longer reports as a failure; a
+search query with special characters is no longer double-encoded; a
+transient failure now gets up to 2 automatic retries with backoff before
+falling through to Phase 3's cache fallback.
+
+**Tests added:** 20 new tests - `RemoteServiceTests` (9, via
+`StubURLProtocol` - query encoding, status-code handling, structured/
+unstructured server errors, retry success/exhaustion, POST-never-retried,
+header injection), `RetryPolicyTests` (7, pure decision logic, no
+networking), `RemoteErrorTests` (4, `.from(_:)` mapping including
+`RemoteError` passthrough).
+
+**Build result:** clean, 0 warnings - after fixing two more instances of
+the same default-argument actor-isolation warning class seen in Phase 3,
+and a real test-flakiness bug: `RemoteServiceTests` initially failed under
+parallel execution because `StubURLProtocol`'s handler/request-log are
+shared static state; fixed with `.serialized`, the same treatment already
+applied to `AppCoordinatorTests` for a different shared-singleton reason.
+
+**Alternatives considered:** a full `APIClient`/`APIRequest<Response>`
+rename/redesign (rejected - `RemoteService`/`Remote.Request` already
+provide adequate typed generics; the real problems were two bugs and two
+missing seams, not the wrong shape); retrying every HTTP method
+(rejected - non-idempotent risk); building the full Phase 5 credentials
+store now instead of just the interceptor's injection seam (rejected -
+out of this phase's scope).
+
+**Why the final approach was selected:** fix what's actually broken and
+missing, in the files that actually need it, without a cosmetic rename of
+things that already worked.
+
+**New interview concepts demonstrated:** the exact boundary-condition bug
+in the original `isSuccess` (`<= 200 && <= 299` collapsing to `<= 200`);
+double-encoding as a category of URL-construction bug; retry policy as a
+pure, independently-testable decision function separate from the loop that
+consults it; `StubURLProtocol` as the standard technique for networking
+tests with no live server; test suites needing `.serialized` when they
+share static/global state, a second real example of this after
+`AppCoordinatorTests`.
+
+**Remaining debt:** `AuthHeaderProviding` is implemented by the same
+plaintext-`UserDefaults` `AuthManager` (Phase 5 replaces the *storage*, not
+just the interceptor's dependency shape); no redacted structured logging
+yet (Phase 9); `RetryPolicy.default`'s tuning is a reasonable guess, not
+measured against real failure data.
+
+---
+
+## Phase 5 onward
 
 Not started. See `docs/ARCHITECTURE_REFACTOR_PLAN.md` for the full phase
 list and `docs/Learning/README.md` for current status labels.

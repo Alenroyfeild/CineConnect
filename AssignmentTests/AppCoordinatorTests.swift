@@ -18,10 +18,19 @@ import Testing
 @Suite(.serialized)
 @MainActor
 struct AppCoordinatorTests {
+    /// A plain `RemoteService` with no interceptors is enough here - none
+    /// of these tests exercise networking, only `AppCoordinator`'s routing.
+    /// `authManager` is resolved in the body, not a default-argument
+    /// expression, for the same actor-isolation reason documented on
+    /// `AppDependencyContainer.init`.
+    private func makeCoordinator(authManager: AuthManager? = nil) -> AppCoordinator {
+        AppCoordinator(authManager: authManager ?? .shared, remoteService: RemoteService())
+    }
+
     @Test func startsAtAuthRootWhenNotAuthenticated() {
         AuthManager.shared.logout()
 
-        let coordinator = AppCoordinator(authManager: .shared)
+        let coordinator = makeCoordinator()
 
         #expect(coordinator.root == .auth)
     }
@@ -30,14 +39,14 @@ struct AppCoordinatorTests {
         AuthManager.shared.saveCredentials(userToken: "test-token", platform: "web", cookie: "test-cookie")
         defer { AuthManager.shared.logout() }
 
-        let coordinator = AppCoordinator(authManager: .shared)
+        let coordinator = makeCoordinator()
 
         #expect(coordinator.root == .movies)
     }
 
     @Test func showMoviesAndShowAuthUpdateRoot() {
         AuthManager.shared.logout()
-        let coordinator = AppCoordinator(authManager: .shared)
+        let coordinator = makeCoordinator()
 
         coordinator.showMovies()
         #expect(coordinator.root == .movies)
@@ -48,7 +57,7 @@ struct AppCoordinatorTests {
 
     @Test func authCoordinatorCompletionBubblesToAppCoordinator() {
         AuthManager.shared.logout()
-        let coordinator = AppCoordinator(authManager: .shared)
+        let coordinator = makeCoordinator()
 
         coordinator.authCoordinator.onAuthenticated?()
 
@@ -58,7 +67,7 @@ struct AppCoordinatorTests {
     @Test func moviesCoordinatorLogoutBubblesToAppCoordinator() {
         AuthManager.shared.saveCredentials(userToken: "test-token", platform: "web", cookie: "test-cookie")
         defer { AuthManager.shared.logout() }
-        let coordinator = AppCoordinator(authManager: .shared)
+        let coordinator = makeCoordinator()
 
         coordinator.moviesCoordinator.onLogout?()
 

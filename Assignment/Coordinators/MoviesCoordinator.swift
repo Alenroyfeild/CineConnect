@@ -4,6 +4,7 @@ import Combine
 @MainActor
 final class MoviesCoordinator: Coordinator {
     let authManager: AuthManager
+    private let remoteService: RemoteService
     var onLogout: (() -> Void)?
 
     /// Owns the movies feature's navigation state explicitly (rather than
@@ -11,10 +12,11 @@ final class MoviesCoordinator: Coordinator {
     /// or "pop to root" action has something to drive programmatically.
     @Published var path = NavigationPath()
 
-    /// No default parameter - always supplied by `AppCoordinator`, never
-    /// `AuthManager.shared` directly.
-    init(authManager: AuthManager) {
+    /// No default parameters - always supplied by `AppCoordinator`, never
+    /// `AuthManager.shared`/a standalone `RemoteService` directly.
+    init(authManager: AuthManager, remoteService: RemoteService) {
         self.authManager = authManager
+        self.remoteService = remoteService
     }
 
     func makeView() -> some View {
@@ -41,10 +43,9 @@ final class MoviesCoordinator: Coordinator {
     }
 
     /// Builds the full ViewModel -> use case -> repository -> remote data
-    /// source chain. `MovieSearchAPIService`/`MovieDetailAPIService` are
-    /// still the only concrete `MovieRepository` backing today - a real,
-    /// swappable networking layer (Phase 4) changes what's inside
-    /// `DefaultMovieRepository`, not this factory's shape.
+    /// source chain, using the single `RemoteService` instance the
+    /// composition root built (with its `AuthenticationInterceptor` already
+    /// wired) - no code here defaults to a standalone `RemoteService`.
     private func makeSearchViewModel() -> MovieSearchViewModel {
         MovieSearchViewModel(searchMovies: SearchMoviesUseCase(repository: makeMovieRepository()))
     }
@@ -55,8 +56,8 @@ final class MoviesCoordinator: Coordinator {
 
     private func makeMovieRepository() -> MovieRepository {
         DefaultMovieRepository(
-            searchAPIService: MovieSearchAPIService(),
-            detailAPIService: MovieDetailAPIService()
+            searchAPIService: MovieSearchAPIService(remoteService: remoteService),
+            detailAPIService: MovieDetailAPIService(remoteService: remoteService)
         )
     }
 }

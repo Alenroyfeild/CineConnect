@@ -267,9 +267,10 @@ struct MovieSearchRowView: View {
     // Uses the real network-backed repository, same as production - a
     // dedicated PreviewDependencies fake repository is a good Phase 3
     // follow-up exercise (see docs/Learning/Architecture/Phase-03-Domain-and-Repository.md).
+    let remoteService = RemoteService()
     let repository = DefaultMovieRepository(
-        searchAPIService: MovieSearchAPIService(),
-        detailAPIService: MovieDetailAPIService()
+        searchAPIService: MovieSearchAPIService(remoteService: remoteService),
+        detailAPIService: MovieDetailAPIService(remoteService: remoteService)
     )
     return MoviesListView(viewModel: MovieSearchViewModel(searchMovies: SearchMoviesUseCase(repository: repository)))
 }

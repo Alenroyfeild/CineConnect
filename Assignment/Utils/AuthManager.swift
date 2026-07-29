@@ -9,7 +9,9 @@ import Foundation
 import WebKit
 import Combine
 
-class AuthManager: ObservableObject {
+/// Conforms to `AuthHeaderProviding` (Phase 4) so `AuthenticationInterceptor`
+/// depends on that protocol, not on `AuthManager` - or `.shared` - directly.
+class AuthManager: ObservableObject, AuthHeaderProviding {
     static let shared = AuthManager()
     
     @Published var isLoggedIn: Bool

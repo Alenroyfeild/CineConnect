@@ -50,43 +50,16 @@ extension Remote {
             }
             headers?.updateValue(value, forKey: header)
         }
-        
-        private func getURLRequest(from jsonEncoder: JSONEncoder) throws -> URLRequest {
-            let url = try getURL()
-            
-            var request = URLRequest(url: url)
-            request.httpMethod = method.rawValue
-            request.allHTTPHeaderFields = headers
-            
-            if let body {
-                guard let encodedBody = try? body.asBody(from: jsonEncoder) else {
-                    throw RemoteError.invalidBody
-                }
-                request.httpBody = encodedBody
-            }
-            
-            return request
-        }
-        
-        private func getURL() throws -> URL {
-            guard let url = url.asURL(),
-                  var urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: false)
-            else {
-                throw RemoteError.invalidURL
-            }
-            
-            urlComponents.queryItems = parameters?.map({ URLQueryItem(name: $0.key, value: $0.value)})
-            
-            guard let constructedURL = urlComponents.url else {
-                throw RemoteError.invalidURL
-            }
-            
-            return constructedURL
-        }
+
+        // `getURLRequest(from:)`/`getURL()` used to be declared here, private
+        // and unused - `RemoteService` had its own separate, duplicate
+        // `buildURLRequest`/`getURL` implementing the exact same logic.
+        // Removed in Phase 4 rather than kept as dead code; `RemoteService`
+        // is the single place request/URL construction happens now.
     }
 }
 
-struct HTTPMethod {
+struct HTTPMethod: Equatable {
     let rawValue: String
 }
 
@@ -96,6 +69,10 @@ extension HTTPMethod {
 }
 
 extension HTTPURLResponse {
-    var isSuccess: Bool { statusCode <= 200 && statusCode <= 299 }
+    /// Fixed in Phase 4: was `statusCode <= 200 && statusCode <= 299`, which
+    /// only exactly 200 satisfies (both conditions being true for anything
+    /// above 200 is impossible) - meaning a 201, 204, or 299 all incorrectly
+    /// reported failure.
+    var isSuccess: Bool { (200..<300).contains(statusCode) }
 }
 

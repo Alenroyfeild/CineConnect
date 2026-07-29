@@ -9,8 +9,11 @@ import Foundation
 
 class BaseAPIService {
     let remoteService: RemoteService
-    
-    init(remoteService: RemoteService = .shared) {
+
+    /// No default parameter - `RemoteService` is built once by
+    /// `AppDependencyContainer` and threaded through the coordinators, the
+    /// same pattern Phase 1 established for `AuthManager`.
+    init(remoteService: RemoteService) {
         self.remoteService = remoteService
     }
 }
