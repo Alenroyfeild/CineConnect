@@ -1,0 +1,25 @@
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+*.xcuserdatad/
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+
+# macOS
+.DS_Store
+
+# Swift Package Manager
+.swiftpm/
+.build/
+
+# Local secrets / credentials — never commit real values here.
+# Use Keychain (CredentialsStore) at runtime instead of files.
+*.env
+.env.*
+Secrets.swift
+Secrets.plist
+*.p12
+*.mobileprovision
+*.pem
