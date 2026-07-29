@@ -15,15 +15,21 @@ final class MovieSearchViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var searchError: SearchError?
 
-    private let apiService: MovieSearchAPIServiceProtocol
+    private let searchMovies: SearchMoviesUseCase
     private var cancellables = Set<AnyCancellable>()
     private var searchTask: Task<Void, Never>?
 
-    init(apiService: MovieSearchAPIServiceProtocol) {
-        self.apiService = apiService
+    init(searchMovies: SearchMoviesUseCase) {
+        self.searchMovies = searchMovies
         setupSearchObserver()
     }
 
+    /// The empty-query check here (before starting a `Task` at all) exists
+    /// so the loading spinner never flashes for a query that's about to be
+    /// cleared to idle state - that's a presentation-timing concern.
+    /// `SearchMoviesUseCase` performs the same trim/empty check again, for
+    /// a different reason: it's the use case's own contract to any caller,
+    /// not just this ViewModel. See `SearchMoviesUseCase`'s doc comment.
     private func setupSearchObserver() {
         $searchText
             .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
@@ -57,7 +63,15 @@ final class MovieSearchViewModel: ObservableObject {
         searchError = nil
 
         do {
-            let response = try await apiService.searchVideos(query: query)
+            // `query` here is already trimmed and non-empty (checked above,
+            // in setupSearchObserver's sink, before this Task is even
+            // started - see that method's doc comment). SearchMoviesUseCase
+            // re-normalizes and re-checks anyway: it guarantees the same
+            // invariant for any future caller that doesn't pre-check itself,
+            // not just this one. `nil` here would mean "nothing to search,"
+            // which can't happen given the pre-check, but is handled
+            // correctly rather than force-unwrapped.
+            guard let response = try await searchMovies(query: query) else { return }
             try Task.checkCancellation()
 
             let latest = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -76,7 +90,7 @@ final class MovieSearchViewModel: ObservableObject {
     }
 }
 
-enum SearchError {
+enum SearchError: Equatable {
     case noResults
     case networkError
     case unknown

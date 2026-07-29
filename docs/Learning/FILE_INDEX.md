@@ -22,8 +22,26 @@ are never left referenced here under their old name.
 | `Assignment/Views/Login/LoginView.swift` | Authentication/UIKit | `struct: UIViewControllerRepresentable` | Bridges `LoginViewController` into SwiftUI | Pre-existing | `LoginViewController` | `AuthenticationCoordinator` | None | `makeUIViewController`/`updateUIViewController`, closure-based event bridge |
 | `AssignmentTests/AppCoordinatorTests.swift` | Tests | `@Suite(.serialized) struct` | Coordinator routing tests | CC7 | `AppCoordinator`, `AuthManager.shared` | — | (is the test) | Integration test against a real singleton; `.serialized` to prevent races |
 | `AssignmentTests/MoviesCoordinatorTests.swift` | Tests | `struct` | Navigation path tests | CC8 | `MoviesCoordinator`, `MoviesRoute` | — | (is the test) | `NavigationPath.count`/`isEmpty` as the only inspectable state |
+| `Assignment/Domain/MovieRepository.swift` | Domain | `protocol` | Data-access boundary for the movies feature | Phase 3 | — | `DefaultMovieRepository`, both use cases | `DefaultMovieRepositoryTests` (via the concrete type) | Protocol as a substitution boundary, no `Sendable` yet (deliberately) |
+| `Assignment/Domain/UseCases/SearchMoviesUseCase.swift` | Domain | `struct` (`callAsFunction`) | Query normalization + "is there anything to search" decision | Phase 3 | `MovieRepository` | `MoviesCoordinator`, `MovieSearchViewModel` | `SearchMoviesUseCaseTests` (5) | Use case owning real application policy; `nil` as a third outcome distinct from empty/error |
+| `Assignment/Domain/UseCases/GetMovieDetailUseCase.swift` | Domain | `struct` (`callAsFunction`) | Forwards to `MovieRepository.movieDetail(slug:)` | Phase 3 | `MovieRepository` | `MoviesCoordinator`, `MovieDetailViewModel` | `GetMovieDetailUseCaseTests` (2) | Honest example of a use case that's currently a pass-through |
+| `Assignment/Data/DefaultMovieRepository.swift` | Data | `final class` | Coordinates remote data source + cache-fallback policy | Phase 3 | `MovieSearchAPIServiceProtocol`, `MovieDetailAPIServiceProtocol`, `MovieCache` | Both use cases (via `MovieRepository`) | `DefaultMovieRepositoryTests` (5) | Repository-owned cache policy, cancellation-vs-failure distinction |
+| `Assignment/Data/DTOs/MovieSearchDTO.swift`, `MovieDetailDTO.swift` | Data | `struct: Decodable` | Decode Hotstar's response shape | Pre-existing, moved Phase 3 | `Foundation` | `MovieSearchMapper`/`MovieDetailMapper` extensions, `MovieSearchAPIService`/`MovieDetailAPIService` | `MovieSearchMapperTests`, `MovieDetailMapperTests` | DTOs kept out of Domain entirely |
+| `Assignment/Data/Mappers/MovieSearchMapper.swift`, `MovieDetailMapper.swift` | Data | `extension` on the DTOs | Explicit DTO→domain mapping | Pre-existing logic, split into own files Phase 3 | `Movie`/`MovieDetail`, the DTOs | `MovieSearchAPIService`/`MovieDetailAPIService` | `MovieSearchMapperTests` (5), `MovieDetailMapperTests` (4) | Explicit mapping, missing-field/invalid-response handling |
+| `AssignmentTests/Fakes/FakeMovieRepository.swift` | Test doubles | `final class` | Configurable fake `MovieRepository` | Phase 3 | `MovieRepository` | Use-case and ViewModel tests | (is a fake, not a test) | Result-based configuration, per-query delay for race tests |
+| `AssignmentTests/Fakes/FakeMovieAPIServices.swift` | Test doubles | `final class` (x2) | Configurable fakes for the remote-data-source protocols | Phase 3 | `MovieSearchAPIServiceProtocol`, `MovieDetailAPIServiceProtocol` | `DefaultMovieRepositoryTests` | (is a fake, not a test) | Testing the repository's own logic without faking a whole `MovieRepository` |
+| `AssignmentTests/DefaultMovieRepositoryTests.swift` | Tests | `@MainActor struct` | Verifies cache-fallback + cancellation policy | Phase 3 | `DefaultMovieRepository`, both fake API services | — | (is the test) | Real `MovieCache` pointed at a temp directory, not mocked |
 
 ## Detailed entries
+
+Phase 3's new files (`MovieRepository`, `DefaultMovieRepository`,
+`SearchMoviesUseCase`, `GetMovieDetailUseCase`, the DTO/mapper split) have
+their full "why it exists / type choice / alternatives / interview Q&A"
+treatment inside `Architecture/Phase-03-Domain-and-Repository.md` rather
+than repeated here verbatim — the summary table above links each one to
+that document. Full per-file entries in this file's own format are kept for
+Phase 1/2's files below; future phases will follow whichever placement
+avoids duplicating the same explanation twice.
 
 ## `Assignment/App/AppDependencyContainer.swift`
 

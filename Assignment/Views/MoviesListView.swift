@@ -264,7 +264,12 @@ struct MovieSearchRowView: View {
 }
 
 #Preview {
-    // Uses the real API service, same as before this refactor - a mockable
-    // MovieRepository for previews arrives with the Phase 3 repository layer.
-    MoviesListView(viewModel: MovieSearchViewModel(apiService: MovieSearchAPIService()))
+    // Uses the real network-backed repository, same as production - a
+    // dedicated PreviewDependencies fake repository is a good Phase 3
+    // follow-up exercise (see docs/Learning/Architecture/Phase-03-Domain-and-Repository.md).
+    let repository = DefaultMovieRepository(
+        searchAPIService: MovieSearchAPIService(),
+        detailAPIService: MovieDetailAPIService()
+    )
+    return MoviesListView(viewModel: MovieSearchViewModel(searchMovies: SearchMoviesUseCase(repository: repository)))
 }

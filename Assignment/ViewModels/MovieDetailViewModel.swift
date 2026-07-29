@@ -8,7 +8,7 @@
 import Foundation
 import Combine
 
-enum DetailError {
+enum DetailError: Equatable {
     case networkError
     case notFound
 }
@@ -19,19 +19,19 @@ class MovieDetailViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var detailError: DetailError?
     
-    private let apiService: MovieDetailAPIServiceProtocol
-    
-    init(apiService: MovieDetailAPIServiceProtocol) {
-        self.apiService = apiService
+    private let getMovieDetail: GetMovieDetailUseCase
+
+    init(getMovieDetail: GetMovieDetailUseCase) {
+        self.getMovieDetail = getMovieDetail
     }
 
     func loadMovieDetail(slug: String) async {
         isLoading = true
         detailError = nil
         movieDetail = nil
-        
+
         do {
-            let detail = try await apiService.fetchMovieDetail(slug: slug)
+            let detail = try await getMovieDetail(slug: slug)
             
             try Task.checkCancellation()
             

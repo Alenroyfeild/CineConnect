@@ -185,9 +185,66 @@ rather than leaving them as unused surface area.
 
 ---
 
-## Phase 3 — in progress
+## Phase 3 — Domain, repository, DTO/mapper boundaries
 
-See `Architecture/Phase-03-Domain-and-Repository.md`, updated live as this
-phase proceeds (per the real-time documentation workflow — this journal
-entry is filled in once the phase's code, tests, and docs are complete
-together, not before).
+**Previous design:** ViewModels called API services directly; each API
+service did request-building, decoding, mapping, *and* cache-fallback in
+one method, with the fallback policy duplicated identically between the
+two services.
+
+**New design:** `Movie`/`MovieDetail` moved to `Domain/Models/`; a
+`MovieRepository` protocol added; `DefaultMovieRepository` owns the
+cache-fallback policy once; `SearchMoviesUseCase` owns query normalization
+(real logic); `GetMovieDetailUseCase` is a documented, deliberate
+pass-through; DTOs (`Data/DTOs/`) and their mapping extensions
+(`Data/Mappers/`) split into separate files; `MovieSearchAPIService`/
+`MovieDetailAPIService` simplified to remote-data-source-only.
+
+**Files changed:** see `Architecture/Phase-03-Domain-and-Repository.md` §4-6
+for the full list.
+
+**Runtime behavior:** unchanged for the user — same search/detail behavior,
+same cache-fallback-on-failure policy. One real behavior *fix*: a cancelled
+request no longer falls back to stale cached data (previously it did,
+because the cache-fallback catch block didn't distinguish
+`CancellationError` from a genuine failure).
+
+**Tests added:** 29 new tests — `MovieSearchMapperTests` (5),
+`MovieDetailMapperTests` (4), `DefaultMovieRepositoryTests` (5),
+`SearchMoviesUseCaseTests` (5), `GetMovieDetailUseCaseTests` (2),
+`MovieSearchViewModelTests` (5, including the "search race" stale-response
+scenario), `MovieDetailViewModelTests` (3) — plus two new fakes,
+`FakeMovieRepository` and `FakeMovieSearchAPIService`/`FakeMovieDetailAPIService`.
+
+**Build result:** clean build, 0 warnings — after fixing a batch of
+actor-isolation warnings the new test suites introduced (see the phase
+doc's §10 for the exact cause and fix: `@MainActor` on each new `@Suite`).
+
+**Alternatives considered:** ViewModel→repository directly (skipping use
+cases), full Clean-Architecture-style fine-grained use cases — both
+documented with reasoning in the phase doc's §12, alongside why this
+project picked "one use case per screen operation, even where one is
+currently thin."
+
+**Why the final approach was selected:** consistency of dependency shape
+across ViewModels, plus a repository boundary that's already earning its
+keep (it's what let this phase find and fix the cancellation/cache bug in
+one place instead of two).
+
+**New interview concepts demonstrated:** repository-as-cache-fallback-owner
+(not just a forwarding layer), the honest "when do use cases become
+unnecessary" question answered with a real pass-through example from this
+exact codebase, `Sendable`/actor-readiness deferred deliberately rather than
+declared prematurely.
+
+**Remaining debt:** `MovieCache` still not actor-isolated; no `CachePolicy`
+parameter; `MoviesCoordinator` still constructs concrete API services
+directly (Phase 4); the known `isSuccess`/double-encoding bugs untouched
+(Phase 4).
+
+---
+
+## Phase 4 onward
+
+Not started. See `docs/ARCHITECTURE_REFACTOR_PLAN.md` for the full phase
+list and `docs/Learning/README.md` for current status labels.

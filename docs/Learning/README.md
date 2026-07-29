@@ -26,7 +26,7 @@ when each piece landed.
 | Injected `MovieSearchViewModel` / `MovieDetailViewModel` | Implemented and verified |
 | Unit test target (Swift Testing) + UI test target (XCTest) | Implemented and verified |
 | Security remediation (credential removal, history scrub, secret scanning) | Implemented and verified — see `../SECURITY.md` |
-| Domain/repository/DTO/mapper boundary | In progress (Phase 3) |
+| Domain/repository/DTO/mapper boundary (`MovieRepository`, `DefaultMovieRepository`, use cases) | Implemented and verified |
 | Networking rewrite (typed client, retry, `200..<300` fix, encoding fix) | Planned (Phase 4) |
 | Credentials store / UIKit auth bridge rework | Planned (Phase 5) |
 | Actor-based memory/disk caches, request coalescing | Planned (Phase 6) |
@@ -39,9 +39,12 @@ when each piece landed.
 1. `CURRENT_IMPLEMENTATION.md` — the one table that describes the whole app's current state.
 2. `Architecture/Phase-01-Composition-Root-and-Coordinators.md`
 3. `Architecture/Phase-02-Movies-Navigation-and-MVVM.md`
-4. `Architecture/Phase-03-Domain-and-Repository.md` (current phase — grows as Phase 3 proceeds)
+4. `Architecture/Phase-03-Domain-and-Repository.md`
 5. `FILE_INDEX.md` — once you want file-by-file depth.
 6. `CONCEPT_TO_CODE_MAP.md` — once you want concept-first navigation instead of file-first.
+
+Phase 4 (networking rewrite) is next; its doc will appear here once that
+phase actually lands.
 
 ## Code-reading order
 

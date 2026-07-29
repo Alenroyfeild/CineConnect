@@ -40,15 +40,23 @@ final class MoviesCoordinator: Coordinator {
         }
     }
 
-    /// Concrete API services are constructed here rather than in the Views
-    /// or the ViewModels' own convenience initializers - the repository/DI
-    /// layer that will replace `MovieSearchAPIService`/`MovieDetailAPIService`
-    /// with an injected `MovieRepository` is Phase 3/4 scope, not this one.
+    /// Builds the full ViewModel -> use case -> repository -> remote data
+    /// source chain. `MovieSearchAPIService`/`MovieDetailAPIService` are
+    /// still the only concrete `MovieRepository` backing today - a real,
+    /// swappable networking layer (Phase 4) changes what's inside
+    /// `DefaultMovieRepository`, not this factory's shape.
     private func makeSearchViewModel() -> MovieSearchViewModel {
-        MovieSearchViewModel(apiService: MovieSearchAPIService())
+        MovieSearchViewModel(searchMovies: SearchMoviesUseCase(repository: makeMovieRepository()))
     }
 
     private func makeDetailViewModel() -> MovieDetailViewModel {
-        MovieDetailViewModel(apiService: MovieDetailAPIService())
+        MovieDetailViewModel(getMovieDetail: GetMovieDetailUseCase(repository: makeMovieRepository()))
+    }
+
+    private func makeMovieRepository() -> MovieRepository {
+        DefaultMovieRepository(
+            searchAPIService: MovieSearchAPIService(),
+            detailAPIService: MovieDetailAPIService()
+        )
     }
 }

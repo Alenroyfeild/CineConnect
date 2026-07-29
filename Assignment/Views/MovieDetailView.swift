@@ -251,7 +251,11 @@ struct MovieDetailView: View {
 }
 
 #Preview {
-    NavigationStack {
+    let repository = DefaultMovieRepository(
+        searchAPIService: MovieSearchAPIService(),
+        detailAPIService: MovieDetailAPIService()
+    )
+    return NavigationStack {
         MovieDetailView(
             movie: Movie(
                 id: "/in/movies/nanu-local/1260141777?search_query=Nenu",
@@ -260,7 +264,7 @@ struct MovieDetailView: View {
                 pageSlug: "/in/movies/nanu-local/1260141777?search_query=Nenu",
                 posterURL: URL(string: "https://img1.hotstarext.com/image/upload/f_auto,t_web_m_1x/sources/r1/cms/prod/7297/1527297-h-b2349a817a4d")
             ),
-            viewModel: MovieDetailViewModel(apiService: MovieDetailAPIService())
+            viewModel: MovieDetailViewModel(getMovieDetail: GetMovieDetailUseCase(repository: repository))
         )
     }
 }
