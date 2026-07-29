@@ -3,49 +3,40 @@ import Testing
 
 /// Coordinator tests for Phase 1 (composition root).
 ///
-/// Honesty note: `AuthManager` is still the pre-refactor singleton type -
-/// splitting it into an injectable, protocol-backed credentials store is
-/// scoped to Phase 5 (see docs/ARCHITECTURE_REFACTOR_PLAN.md). Until then
-/// there's no way to construct an isolated fake `AuthManager`, so these
-/// exercise `AppCoordinator`'s routing logic against the real
-/// `AuthManager.shared`, driving it through its own public API and
-/// resetting state afterward. That makes these integration tests against a
-/// process-wide singleton, not isolated unit tests - a real testability gap,
-/// tracked rather than hidden.
-/// `.serialized`: every test here mutates the shared `AuthManager.shared`
-/// singleton (see the honesty note above) - running them concurrently would
-/// make them race each other.
-@Suite(.serialized)
+/// As of Phase 5, these construct a fresh, isolated `AuthManager` per test
+/// (injected with an in-memory `CredentialsStore`) instead of driving the
+/// real `AuthManager.shared` singleton - genuinely isolated unit tests now,
+/// not integration tests against shared process-wide state. No
+/// `.serialized` trait needed for that reason either: nothing here shares
+/// mutable state across tests anymore.
 @MainActor
+@Suite
 struct AppCoordinatorTests {
     /// A plain `RemoteService` with no interceptors is enough here - none
     /// of these tests exercise networking, only `AppCoordinator`'s routing.
-    /// `authManager` is resolved in the body, not a default-argument
-    /// expression, for the same actor-isolation reason documented on
-    /// `AppDependencyContainer.init`.
     private func makeCoordinator(authManager: AuthManager? = nil) -> AppCoordinator {
-        AppCoordinator(authManager: authManager ?? .shared, remoteService: RemoteService())
+        let manager = authManager ?? AuthManager(credentialsStore: CredentialsStore(keychain: InMemoryKeyValueStore()))
+        return AppCoordinator(authManager: manager, remoteService: RemoteService())
     }
 
-    @Test func startsAtAuthRootWhenNotAuthenticated() {
-        AuthManager.shared.logout()
-
+    @Test func startsAtAuthRootWhenNotAuthenticated() async {
         let coordinator = makeCoordinator()
+        await coordinator.start()
 
         #expect(coordinator.root == .auth)
     }
 
-    @Test func startsAtMoviesRootWhenAuthenticated() {
-        AuthManager.shared.saveCredentials(userToken: "test-token", platform: "web", cookie: "test-cookie")
-        defer { AuthManager.shared.logout() }
+    @Test func startsAtMoviesRootWhenAuthenticated() async {
+        let authManager = AuthManager(credentialsStore: CredentialsStore(keychain: InMemoryKeyValueStore()))
+        await authManager.saveCredentials(userToken: "test-token", platform: "web", cookie: "test-cookie")
+        let coordinator = makeCoordinator(authManager: authManager)
 
-        let coordinator = makeCoordinator()
+        await coordinator.start()
 
         #expect(coordinator.root == .movies)
     }
 
-    @Test func showMoviesAndShowAuthUpdateRoot() {
-        AuthManager.shared.logout()
+    @Test func showMoviesAndShowAuthUpdateRoot() async {
         let coordinator = makeCoordinator()
 
         coordinator.showMovies()
@@ -55,8 +46,7 @@ struct AppCoordinatorTests {
         #expect(coordinator.root == .auth)
     }
 
-    @Test func authCoordinatorCompletionBubblesToAppCoordinator() {
-        AuthManager.shared.logout()
+    @Test func authCoordinatorCompletionBubblesToAppCoordinator() async {
         let coordinator = makeCoordinator()
 
         coordinator.authCoordinator.onAuthenticated?()
@@ -64,19 +54,20 @@ struct AppCoordinatorTests {
         #expect(coordinator.root == .movies)
     }
 
-    @Test func moviesCoordinatorLogoutBubblesToAppCoordinator() {
-        AuthManager.shared.saveCredentials(userToken: "test-token", platform: "web", cookie: "test-cookie")
-        defer { AuthManager.shared.logout() }
-        let coordinator = makeCoordinator()
+    @Test func moviesCoordinatorLogoutBubblesToAppCoordinator() async {
+        let authManager = AuthManager(credentialsStore: CredentialsStore(keychain: InMemoryKeyValueStore()))
+        await authManager.saveCredentials(userToken: "test-token", platform: "web", cookie: "test-cookie")
+        let coordinator = makeCoordinator(authManager: authManager)
 
         coordinator.moviesCoordinator.onLogout?()
 
         #expect(coordinator.root == .auth)
     }
 
-    @Test func dependencyContainerWiresACoordinator() {
+    @Test func dependencyContainerWiresACoordinator() async {
         let container = AppDependencyContainer()
         let coordinator = container.makeAppCoordinator()
+        await coordinator.start()
         #expect(coordinator.root == .auth || coordinator.root == .movies)
     }
 }

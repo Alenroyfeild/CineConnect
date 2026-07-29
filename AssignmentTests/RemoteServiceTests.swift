@@ -166,5 +166,5 @@ struct RemoteServiceTests {
 final class FakeAuthHeaderProvider: AuthHeaderProviding {
     private let headers: [String: String]
     init(headers: [String: String]) { self.headers = headers }
-    func getHeaders() -> [String: String] { headers }
+    func getHeaders() async -> [String: String] { headers }
 }

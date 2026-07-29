@@ -169,9 +169,8 @@ struct MoviesListView: View {
     }
     
     private func logout() {
-        print("🚪 User initiated logout")
-        
-        authManager.logout {
+        Task {
+            await authManager.logout()
             onLogout?()
         }
     }

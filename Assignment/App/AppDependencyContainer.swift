@@ -4,14 +4,16 @@ import Foundation
 /// them to coordinators explicitly - nothing downstream reaches for a
 /// `.shared` singleton itself.
 ///
-/// Scope note: `AuthManager` is still the pre-refactor singleton type here.
-/// This phase only removes the *implicit* `.shared` access at the
-/// coordinator layer; `AuthManager` itself is split into a `CredentialsStore`
-/// actor + authentication repository in a later phase (see
-/// docs/ARCHITECTURE_REFACTOR_PLAN.md, Phase 5). `LoginViewController`
-/// still reads `AuthManager.shared` directly until that phase gives it an
-/// injectable seam - `AuthenticationInterceptor` no longer does, as of
-/// Phase 4 (it depends on `AuthHeaderProviding`, built here).
+/// Scope note: `AuthManager` is still a singleton type (`AuthManager.shared`
+/// exists, and this container defaults to it) - but as of Phase 5, this is
+/// the *only* place that reference appears in production code.
+/// `AuthenticationInterceptor` depends on `AuthHeaderProviding` (Phase 4),
+/// and `LoginViewController` now takes an injected `AuthManager` (Phase 5) -
+/// neither reaches for `.shared` themselves anymore. What Phase 5 didn't
+/// change: `AuthManager` is still a class wrapping storage rather than a
+/// fully protocol-backed abstraction a test could substitute wholesale
+/// (its *storage*, `CredentialsStore`, is already swappable - see
+/// `AuthManagerTests.swift` for real isolated tests using that seam).
 @MainActor
 final class AppDependencyContainer {
     let authManager: AuthManager

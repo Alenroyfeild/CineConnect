@@ -21,7 +21,7 @@ struct AssignmentApp: App {
     var body: some Scene {
         WindowGroup {
             appCoordinator.makeRootView()
-                .onAppear { appCoordinator.start() }
+                .task { await appCoordinator.start() }
         }
     }
 }

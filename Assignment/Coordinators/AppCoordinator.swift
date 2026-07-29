@@ -16,9 +16,15 @@ final class AppCoordinator: ObservableObject {
     /// Dependencies are always supplied by `AppDependencyContainer` - no
     /// default parameters here, so nothing can silently fall back to
     /// `AuthManager.shared`/a standalone `RemoteService`.
+    ///
+    /// `root` starts at `.auth` (the safe default) rather than
+    /// synchronously querying authentication state - as of Phase 5, that
+    /// state lives behind the Keychain-backed `CredentialsStore`, which is
+    /// only readable asynchronously. `start()` corrects `root` from the
+    /// real state once it's known.
     init(authManager: AuthManager, remoteService: RemoteService) {
         self.authManager = authManager
-        self.root = authManager.isAuthenticated() ? .movies : .auth
+        self.root = .auth
         self.authCoordinator = AuthenticationCoordinator(authManager: authManager)
         self.moviesCoordinator = MoviesCoordinator(authManager: authManager, remoteService: remoteService)
 
@@ -30,8 +36,12 @@ final class AppCoordinator: ObservableObject {
         }
     }
 
-    func start() {
-        root = authManager.isAuthenticated() ? .movies : .auth
+    /// Reads real authentication state and corrects `root` accordingly.
+    /// Called once at launch via `.task` (not `.onAppear`, since this is
+    /// async - see `AssignmentApp.swift`).
+    func start() async {
+        await authManager.refreshAuthenticationState()
+        root = authManager.isLoggedIn ? .movies : .auth
     }
 
     func showMovies() {

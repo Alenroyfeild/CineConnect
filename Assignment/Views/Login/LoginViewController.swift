@@ -15,6 +15,9 @@ class LoginViewController: UIViewController {
     private let loginURL = "https://www.hotstar.com/in/subscribe"
     private var hasExtractedCredentials = false
 
+    private let authManager: AuthManager
+    private let webDataClearingService = WebDataClearingService()
+
     private let proceedButton: UIButton = {
         let button = UIButton(type: .system)
         button.setTitle("I've Logged In - Proceed", for: .normal)
@@ -27,19 +30,30 @@ class LoginViewController: UIViewController {
         return button
     }()
 
+    /// No default parameter, no `AuthManager.shared` reference - injected
+    /// by `LoginView`, which gets it from `AuthenticationCoordinator`.
+    init(authManager: AuthManager) {
+        self.authManager = authManager
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) is not supported - LoginViewController is always constructed programmatically with an injected AuthManager")
+    }
+
     // MARK: - Lifecycle
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .black
-       
-        if AuthManager.shared.isAuthenticated() {
-            print("✅ Already authenticated, navigating to main app")
-            navigateToMainApp()
-            return
-        }
 
-        clearAllWebData { [weak self] in
+        // No "already authenticated, skip login" check here: AppCoordinator
+        // already gates whether this screen is shown at all based on real
+        // authentication state (see AppCoordinator.start()) - duplicating
+        // that check here would be validating a scenario that can't happen
+        // in normal operation.
+        Task { [weak self] in
+            await self?.webDataClearingService.clearAllWebData()
             self?.setupWebView()
             self?.setupProceedButton()
             self?.loadLogin()
@@ -54,28 +68,6 @@ class LoginViewController: UIViewController {
 
     override var prefersStatusBarHidden: Bool { return true }
     override var prefersHomeIndicatorAutoHidden: Bool { return true }
-
-    // MARK: - Clear All Data
-
-    private func clearAllWebData(completion: @escaping () -> Void) {
-        print("🗑️ Clearing ALL web data...")
-
-        let dataStore = WKWebsiteDataStore.default()
-        let dataTypes = WKWebsiteDataStore.allWebsiteDataTypes()
-
-        dataStore.fetchDataRecords(ofTypes: dataTypes) { records in
-            dataStore.removeData(ofTypes: dataTypes, for: records) {
-                HTTPCookieStorage.shared.cookies?.forEach { cookie in
-                    HTTPCookieStorage.shared.deleteCookie(cookie)
-                }
-                URLCache.shared.removeAllCachedResponses()
-
-                DispatchQueue.main.async {
-                    completion()
-                }
-            }
-        }
-    }
 
     // MARK: - Setup WebView
 
@@ -161,10 +153,11 @@ class LoginViewController: UIViewController {
     }
 
     @objc private func proceedButtonTapped() {
-        print("🚀 Proceed button tapped")
         proceedButton.isEnabled = false
         proceedButton.alpha = 0.5
-        extractAndSaveHeaders()
+        Task { [weak self] in
+            await self?.extractAndSaveHeaders()
+        }
     }
 
     private func loadLogin() {
@@ -179,67 +172,43 @@ class LoginViewController: UIViewController {
 
     // MARK: - Extract Credentials
 
-    private func extractAndSaveHeaders() {
+    /// Cookie extraction/validation itself lives in `HotstarCredentialExtractor`
+    /// (pure, testable outside this ViewController) - this method's job is
+    /// just bridging the `WKHTTPCookieStore` callback into that pure logic
+    /// and reacting to its result.
+    private func extractAndSaveHeaders() async {
         guard !hasExtractedCredentials else { return }
 
-        let dataStore = webView.configuration.websiteDataStore
-
-        dataStore.httpCookieStore.getAllCookies { [weak self] cookies in
-            guard let self = self else { return }
-
-            let essentialCookieNames = [
-                "userUP", "sessionUserUP", "userHID", "userPID",
-                "deviceId", "loc", "geo", "SELECTED__LANGUAGE"
-            ]
-
-            var essentialCookies: [HTTPCookie] = []
-            var cookieString = ""
-            var userToken = ""
-
-            for cookie in cookies where cookie.domain.contains("hotstar") {
-                if essentialCookieNames.contains(cookie.name) {
-                    essentialCookies.append(cookie)
-                    cookieString += "\(cookie.name)=\(cookie.value); "
-
-                    if cookie.name == "userUP" || cookie.name == "sessionUserUP" {
-                        userToken = cookie.value
-                    }
-                }
-            }
-
-            if userToken.isEmpty, let locCookie = essentialCookies.first(where: { $0.name == "loc" }) {
-                userToken = locCookie.value
-            }
-
-            if !cookieString.isEmpty && !userToken.isEmpty {
-                self.hasExtractedCredentials = true
-
-                self.saveCookiesToPersistentStore(cookies: essentialCookies)
-
-                AuthManager.shared.saveCredentials(
-                    userToken: userToken,
-                    platform: "web",
-                    cookie: cookieString.trimmingCharacters(in: .whitespaces)
-                )
-
-                DispatchQueue.main.async {
-                    self.navigateToMainApp()
-                }
-            } else {
-                DispatchQueue.main.async {
-                    self.proceedButton.isEnabled = true
-                    self.proceedButton.alpha = 1.0
-
-                    let alert = UIAlertController(
-                        title: "Login Required",
-                        message: "Please log in first.",
-                        preferredStyle: .alert
-                    )
-                    alert.addAction(UIAlertAction(title: "OK", style: .default))
-                    self.present(alert, animated: true)
-                }
+        let cookies = await withCheckedContinuation { continuation in
+            webView.configuration.websiteDataStore.httpCookieStore.getAllCookies { cookies in
+                continuation.resume(returning: cookies)
             }
         }
+
+        guard let extracted = HotstarCredentialExtractor.extract(from: cookies) else {
+            proceedButton.isEnabled = true
+            proceedButton.alpha = 1.0
+
+            let alert = UIAlertController(
+                title: "Login Required",
+                message: "Please log in first.",
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            present(alert, animated: true)
+            return
+        }
+
+        hasExtractedCredentials = true
+        saveCookiesToPersistentStore(cookies: cookies.filter { $0.domain.contains("hotstar") })
+
+        await authManager.saveCredentials(
+            userToken: extracted.userToken,
+            platform: "web",
+            cookie: extracted.cookieString
+        )
+
+        navigateToMainApp()
     }
 
     private func saveCookiesToPersistentStore(cookies: [HTTPCookie]) {

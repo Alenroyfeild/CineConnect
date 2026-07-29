@@ -16,11 +16,11 @@ public protocol ResponseInterceptor {
 }
 
 /// What `AuthenticationInterceptor` needs from a credentials source -
-/// nothing more. `AuthManager` conforms today (see `AuthManager.swift`);
-/// a future Keychain-backed `CredentialsStore` (Phase 5) can conform
-/// instead without this interceptor changing at all.
+/// nothing more. `AuthManager` conforms (see `AuthManager.swift`), itself
+/// backed by the Keychain via `CredentialsStore` as of Phase 5. `async`
+/// because reading from the Keychain-backed store is asynchronous.
 protocol AuthHeaderProviding {
-    func getHeaders() -> [String: String]
+    func getHeaders() async -> [String: String]
 }
 
 final class AuthenticationInterceptor: RequestInterceptor {
@@ -35,7 +35,7 @@ final class AuthenticationInterceptor: RequestInterceptor {
 
     func intercept(_ request: URLRequest) async throws -> URLRequest {
         var modifiedRequest = request
-        for header in headerProvider.getHeaders() {
+        for header in await headerProvider.getHeaders() {
             modifiedRequest.setValue(header.value, forHTTPHeaderField: header.key)
         }
         return modifiedRequest

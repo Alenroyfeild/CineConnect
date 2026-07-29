@@ -12,7 +12,7 @@ final class AuthenticationCoordinator: Coordinator {
     }
 
     func makeView() -> some View {
-        LoginView(onAuthenticated: { [weak self] in
+        LoginView(authManager: authManager, onAuthenticated: { [weak self] in
             self?.onAuthenticated?()
         })
         .environmentObject(authManager)

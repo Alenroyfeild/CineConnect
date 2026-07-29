@@ -317,7 +317,100 @@ measured against real failure data.
 
 ---
 
-## Phase 5 onward
+## Phase 5 — Credentials store and UIKit auth bridge
+
+**Previous design:** `AuthManager` did storage (plaintext `UserDefaults`),
+state, WebKit clearing, and dead navigation code all in one class, and
+printed credential prefixes on every save. `LoginViewController` read
+`AuthManager.shared` directly. Cookie extraction was ~30 lines inline
+inside a WebKit completion closure.
+
+**New design:** `CredentialsStore` (actor, Keychain-backed via
+`KeychainStore`) replaces `UserDefaults`; `AuthManager` becomes a thin
+`@MainActor` wrapper with no storage of its own and no credential logging;
+`LoginViewController` takes an injected `AuthManager`; cookie extraction
+moved to the pure, testable `HotstarCredentialExtractor`; WebKit
+data-clearing consolidated into `WebDataClearingService` (previously
+duplicated in two places).
+
+**The real finding of this phase:** the naive Keychain-backed design
+(`CredentialsStore` depending on the concrete `KeychainStore` actor
+directly) turned out to be completely untestable in this project's build
+environment - `SecItemAdd`/`SecItemUpdate` return `errSecMissingEntitlement`
+(-34018) when called from an unsigned app, which is exactly what
+`CODE_SIGNING_ALLOWED=NO` (used throughout this session, since no valid
+signing identity exists here) produces. Diagnosed by instrumenting
+`KeychainStore` to report the raw `OSStatus` in a temporary test, then
+confirming a bare `swift` script on the Mac host (outside any app sandbox)
+could write to the Keychain fine - isolating the constraint to the
+signed-app-sandbox context specifically. Fixed architecturally: introduced
+`SecureKeyValueStoring`, so `CredentialsStore`'s own logic is now tested
+against `InMemoryKeyValueStore`, while `KeychainStore` remains real
+Keychain code, honestly documented as unverified by this environment's
+automated tests (see `docs/Learning/Architecture/Phase-05-Authentication.md`
+§10 for the full account - it's worth reading in full).
+
+**A second, related fix:** `AppCoordinatorTests` had been driving the real
+`AuthManager.shared` singleton since Phase 1 (an acknowledged testability
+gap in every prior phase's docs). Phase 5's constructor injection made it
+possible to finally construct isolated `AuthManager` instances per test -
+closing that gap as a side effect of fixing the Keychain-testability
+problem, not as separate work.
+
+**Files changed:** see `Architecture/Phase-05-Authentication.md` §4-6.
+
+**Runtime behavior:** login/logout behavior is unchanged for the user.
+`AppCoordinator.start()` becoming `async` (root now starts at `.auth` and
+corrects itself once real Keychain state is known, rather than blocking
+`init` on a synchronous check) is a real, intentional behavior change,
+necessary because Keychain reads are asynchronous.
+
+**Tests added:** 16 new tests - `CredentialsStoreTests` (5),
+`AuthManagerTests` (5), `HotstarCredentialExtractorTests` (6). `AppCoordinatorTests`
+(6) rewritten, not added to, for the isolation fix above.
+
+**Build result:** clean, 0 warnings - after fixing two more instances of
+the recurring default-argument actor-isolation warning class (this time
+also requiring `CredentialsStore.init` to drop its default parameter
+entirely, since constructing an actor from inside another actor's own
+initializer body hit the same restriction a default-argument expression
+would).
+
+**Alternatives considered:** keep `UserDefaults`, only remove the
+prefix-printing (rejected - treats the symptom, not the plaintext-storage
+problem); skip the protocol boundary and mark Keychain tests as
+environment-dependent/skipped (rejected - would leave `CredentialsStore`'s
+actual decision logic completely unverified for a problem a small
+protocol solves cleanly); biometric/passcode-gated Keychain access
+(considered, not adopted - not clearly justified by this app's threat
+model, revisit if reused for higher-sensitivity data).
+
+**Why the final approach was selected:** the protocol boundary is the
+textbook-correct answer to "a real dependency is unreachable in this test
+environment," and it was arrived at because the naive approach failed
+loudly and reproducibly enough to force the better design, not chosen
+speculatively upfront.
+
+**New interview concepts demonstrated:** diagnosing a real
+`OSStatus`/`errSecMissingEntitlement` failure through instrumentation
+rather than guessing; a protocol boundary as the fix for "real dependency
+unreachable in this test environment," directly parallel to
+`URLProtocol`/`StubURLProtocol` in Phase 4; an actor whose real value is
+"one async, testable interface" rather than race protection, stated
+honestly rather than oversold; closing a testability gap (the
+`AppCoordinatorTests` singleton problem) as a side effect of fixing a
+different, more urgent problem.
+
+**Remaining debt:** `KeychainStore`'s real Keychain calls remain
+unverified by automated tests in this environment (needs a properly
+signed build to check manually); no dedicated test for "logout during an
+active detail request" (behavior believed correct via SwiftUI's own view
+lifecycle, untested); `AuthManager` is still a singleton type, just with
+swappable storage now.
+
+---
+
+## Phase 6 onward
 
 Not started. See `docs/ARCHITECTURE_REFACTOR_PLAN.md` for the full phase
 list and `docs/Learning/README.md` for current status labels.

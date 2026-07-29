@@ -18,8 +18,8 @@ are never left referenced here under their old name.
 | `Assignment/Coordinators/MoviesRoute.swift` | Movies/Navigation | `enum: Hashable` | Typed navigation destination for the movies feature | CC8 | `Movie` | `MoviesCoordinator`, `MoviesListView` | `MoviesCoordinatorTests.appendingDetailRouteGrowsPath` | `Hashable` routes vs. raw model as nav value |
 | `Assignment/ViewModels/MovieSearchViewModel.swift` | Presentation | `final class`, `@MainActor`, `ObservableObject` | Search text pipeline, results/loading/error state | Pre-existing, injection added CC8 | `MovieSearchAPIServiceProtocol` | `MoviesListView`, `MoviesCoordinator` | None dedicated yet (Phase 3 gap) | Combine debounce, `Task` cancel-on-new-query, stale-result guard |
 | `Assignment/ViewModels/MovieDetailViewModel.swift` | Presentation | `final class`, `@MainActor`, `ObservableObject` | Detail load/loading/error state | Pre-existing, injection added CC8 | `MovieDetailAPIServiceProtocol` | `MovieDetailView`, `MoviesCoordinator` | None dedicated yet (Phase 3 gap) | `Task` cancellation via `.task(id:)`, `CancellationError` handling |
-| `Assignment/Views/Login/LoginViewController.swift` | Authentication/UIKit | `class: UIViewController` | WebKit login flow, credential extraction | Pre-existing | `AuthManager.shared`, `WKWebView` | `LoginView` | None | SwiftUI↔UIKit bridge, `WKNavigationDelegate`, still reads `.shared` directly (Phase 5 gap) |
-| `Assignment/Views/Login/LoginView.swift` | Authentication/UIKit | `struct: UIViewControllerRepresentable` | Bridges `LoginViewController` into SwiftUI | Pre-existing | `LoginViewController` | `AuthenticationCoordinator` | None | `makeUIViewController`/`updateUIViewController`, closure-based event bridge |
+| `Assignment/Views/Login/LoginViewController.swift` | Authentication/UIKit | `class: UIViewController` | WebKit login flow, credential extraction | Pre-existing, injected-`AuthManager` + pure-extraction rework Phase 5 | `AuthManager` (injected), `HotstarCredentialExtractor`, `WebDataClearingService` | `LoginView` | `HotstarCredentialExtractorTests` (indirectly, its extracted logic) | SwiftUI↔UIKit bridge, `WKNavigationDelegate`, no more `.shared` reference |
+| `Assignment/Views/Login/LoginView.swift` | Authentication/UIKit | `struct: UIViewControllerRepresentable` | Bridges `LoginViewController` into SwiftUI | Pre-existing, threads `authManager` Phase 5 | `LoginViewController`, `AuthManager` | `AuthenticationCoordinator` | None | `makeUIViewController`/`updateUIViewController`, closure-based event bridge |
 | `AssignmentTests/AppCoordinatorTests.swift` | Tests | `@Suite(.serialized) struct` | Coordinator routing tests | CC7 | `AppCoordinator`, `AuthManager.shared` | — | (is the test) | Integration test against a real singleton; `.serialized` to prevent races |
 | `AssignmentTests/MoviesCoordinatorTests.swift` | Tests | `struct` | Navigation path tests | CC8 | `MoviesCoordinator`, `MoviesRoute` | — | (is the test) | `NavigationPath.count`/`isEmpty` as the only inspectable state |
 | `Assignment/Domain/MovieRepository.swift` | Domain | `protocol` | Data-access boundary for the movies feature | Phase 3 | — | `DefaultMovieRepository`, both use cases | `DefaultMovieRepositoryTests` (via the concrete type) | Protocol as a substitution boundary, no `Sendable` yet (deliberately) |
@@ -34,6 +34,10 @@ are never left referenced here under their old name.
 | `Assignment/Services/Remote/RetryPolicy.swift` | Networking | `struct` | Bounded exponential-backoff retry decision, GET-only | Phase 4 | — | `RemoteService` | `RetryPolicyTests` (7) | Pure decision function, injectable sleep for fast tests |
 | `Assignment/Services/Remote/Interceptors.swift` (`AuthHeaderProviding`) | Networking | `protocol` | Credentials-provider seam for `AuthenticationInterceptor` | Phase 4 | — | `AuthenticationInterceptor`; implemented by `AuthManager` | `RemoteServiceTests.requestInterceptorHeadersReachTheFinalRequest` | Protocol replacing a direct singleton reference |
 | `AssignmentTests/Fakes/StubURLProtocol.swift` | Test doubles | `final class: URLProtocol` | Intercepts `URLSession` traffic for deterministic networking tests | Phase 4 | — | `RemoteServiceTests` | (is a fake, not a test) | Shared static state - requires `.serialized` in its consuming suite |
+| `Assignment/Storage/KeychainStore.swift` (`SecureKeyValueStoring`, `KeychainStore`) | Storage | `protocol` + `actor` | Keychain-backed secure key/value storage | Phase 5 | Security framework | `CredentialsStore` | Not testable in this environment (`errSecMissingEntitlement`) - see Phase 5 doc §10 | Actor for one async interface, not race protection; a discovered environment constraint fixed by a protocol boundary |
+| `Assignment/Storage/CredentialsStore.swift` | Storage | `actor` | Owns credential composition and the authenticated/not decision | Phase 5 | `SecureKeyValueStoring` | `AuthManager` | `CredentialsStoreTests` (5, via `InMemoryKeyValueStore`) | Protocol-backed dependency for testability |
+| `Assignment/Storage/WebDataClearingService.swift` | Storage | `@MainActor final class` | Consolidates WebKit/cookie/URL-cache clearing (was duplicated in two places) | Phase 5 | `WKWebsiteDataStore`, `HTTPCookieStorage`, `URLCache` | `AuthManager`, `LoginViewController` | None dedicated (exercised indirectly via `AuthManagerTests.logoutClearsCredentialsAndIsLoggedIn`) | `withCheckedContinuation` bridging a completion-handler API |
+| `Assignment/Views/Login/HotstarCredentialExtractor.swift` | Authentication | `enum` (pure functions) | Extracts a usable session token/cookie string from raw `HTTPCookie`s | Phase 5 | — | `LoginViewController` | `HotstarCredentialExtractorTests` (6) | Pure logic pulled out of a UIKit/WebKit callback specifically for testability |
 
 ## Detailed entries
 
@@ -629,21 +633,25 @@ Decide app-level navigation beyond "I'm done, here's my result" (confirmed:
 protocols are UIKit.
 
 ### Created by
-Pre-existing; unchanged by Phases 1–2 (Phase 5 scope).
+Pre-existing; injected-`AuthManager` initializer and internal rework
+(pure-extraction, consolidated web-data clearing) added Phase 5.
 
 ### Dependencies
-`AuthManager.shared` (direct singleton access — the known, tracked gap
-this file represents), `WKWebView`, `WKWebsiteDataStore`.
+`AuthManager` (injected via `init(authManager:)` — no `.shared` reference
+anywhere in this file as of Phase 5), `HotstarCredentialExtractor`,
+`WebDataClearingService`, `WKWebView`.
 
 ### Used by
 `LoginView` (`UIViewControllerRepresentable`).
 
 ### Runtime flow
-`viewDidLoad` → (if already authenticated, skip straight through) → clears
-all WebKit data → loads the login URL → on `proceedButtonTapped`, extracts
-cookies from `WKHTTPCookieStore`, looks for specific cookie names, and if a
-usable token is found, calls `AuthManager.shared.saveCredentials(...)` and
-then `onAuthenticated?()`.
+`viewDidLoad` → `Task` clears all WebKit data via `WebDataClearingService`
+→ loads the login URL → on `proceedButtonTapped`, a `Task` awaits all
+cookies from `WKHTTPCookieStore` (bridged via `withCheckedContinuation`),
+passes them to `HotstarCredentialExtractor.extract(from:)`, and if a
+usable result comes back, calls `await authManager.saveCredentials(...)`
+then `onAuthenticated?()`. No "already authenticated, skip" check remains
+here — `AppCoordinator` already gates whether this screen is shown at all.
 
 ### Isolation
 Implicitly main-thread (UIKit), not `@MainActor`-annotated explicitly (a
@@ -652,31 +660,37 @@ review).
 
 ### Error and cancellation behavior
 No credentials found → re-enables the "proceed" button and shows a
-`UIAlertController` asking the user to log in first. No structured
-cancellation (it's UIKit callback-based, not `async`/`await`, in this file).
+`UIAlertController` asking the user to log in first. Async work is started
+via un-awaited `Task { [weak self] in ... }` blocks from synchronous UIKit
+callbacks (`viewDidLoad`, `proceedButtonTapped`) — no explicit cancellation
+of those tasks exists if the controller is dismissed mid-flight, a real,
+minor gap (the tasks capture `self` weakly, so they don't leak the
+controller, but they do keep running).
 
 ### Tests
-None — untestable in its current form (`AuthManager.shared` singleton,
-UIKit lifecycle) without the Phase 5 credentials-store/interface work.
+None directly (still UIKit-lifecycle-bound) — but its previously-untestable
+cookie-parsing logic is now covered via `HotstarCredentialExtractorTests`
+(6 tests), since that logic was pulled out into its own pure type.
 
 ### Alternative approaches
-None yet documented — this file is intentionally *not* being touched until
-Phase 5, per the migration's own "refactor feature by feature, don't touch
-what the current phase doesn't need" rule.
+See `docs/Learning/Architecture/Phase-05-Authentication.md` §12 for the
+full alternatives comparison (Keychain accessibility level, protocol
+boundary design).
 
 ### Interview explanation
 "How does the SwiftUI/UIKit boundary work here?" — `LoginView`
-(`UIViewControllerRepresentable`) creates and owns this controller;
-completion flows back to SwiftUI via a plain closure
-(`onAuthenticated`), not a delegate — appropriate for a single one-shot
-event, expanded on in Phase 5's `docs/SWIFTUI_UIKIT_INTEROPERABILITY.md`.
+(`UIViewControllerRepresentable`) creates and owns this controller,
+injecting `AuthManager` rather than letting it reach `.shared`; completion
+flows back to SwiftUI via a plain closure (`onAuthenticated`), not a
+delegate. Full detail in `docs/SWIFTUI_UIKIT_INTEROPERABILITY.md`.
 
 ### Counter-question
-"Why hasn't this been fixed already, given it's flagged as a known gap?"
-— Because this migration's own ground rules say not to touch a feature
-before its scoped phase, and not to do one massive rewrite. Fixing it now
-would mean doing Phase 5's credential-store work out of order, without the
-`CredentialsStore` actor it needs to inject into.
+"Why does credential extraction live in a separate `HotstarCredentialExtractor`
+type instead of staying inline here?" — Because a `WKHTTPCookieStore`
+completion closure can't be unit-tested without a live `WKWebView`; pulling
+the pure logic out let Phase 5 add 6 real tests for exactly the part of
+this flow most likely to break silently (Hotstar changing its cookie
+contract).
 
 ### What would break if this file disappeared?
 No way to log in at all — this is the entire authentication mechanism.

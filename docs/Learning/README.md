@@ -28,7 +28,7 @@ when each piece landed.
 | Security remediation (credential removal, history scrub, secret scanning) | Implemented and verified — see `../SECURITY.md` |
 | Domain/repository/DTO/mapper boundary (`MovieRepository`, `DefaultMovieRepository`, use cases) | Implemented and verified |
 | Networking (retry policy, `200..<300` fix, encoding fix, injected interceptor, structured errors) | Implemented and verified |
-| Credentials store / UIKit auth bridge rework | Planned (Phase 5) |
+| Credentials store (Keychain-backed `CredentialsStore`) / UIKit auth bridge | Implemented and verified (real Keychain calls untested in this environment - see Phase 5 doc §10/§18) |
 | Actor-based memory/disk caches, request coalescing | Planned (Phase 6) |
 | Combine/cancellation hardening | Planned (Phase 7 — the debounced search pipeline itself already exists from before this migration; Phase 7 is about hardening and documenting it, not building it from scratch) |
 | Cached image pipeline | Planned (Phase 8) |
@@ -41,11 +41,12 @@ when each piece landed.
 3. `Architecture/Phase-02-Movies-Navigation-and-MVVM.md`
 4. `Architecture/Phase-03-Domain-and-Repository.md`
 5. `Architecture/Phase-04-Networking.md`
-6. `FILE_INDEX.md` — once you want file-by-file depth.
-7. `CONCEPT_TO_CODE_MAP.md` — once you want concept-first navigation instead of file-first.
+6. `Architecture/Phase-05-Authentication.md` — also read `../SWIFTUI_UIKIT_INTEROPERABILITY.md` alongside this one.
+7. `FILE_INDEX.md` — once you want file-by-file depth.
+8. `CONCEPT_TO_CODE_MAP.md` — once you want concept-first navigation instead of file-first.
 
-Phase 5 (credentials store / UIKit auth bridge) is next; its doc will
-appear here once that phase actually lands.
+Phase 6 (actor-based caches) is next; its doc will appear here once that
+phase actually lands.
 
 ## Code-reading order
 
