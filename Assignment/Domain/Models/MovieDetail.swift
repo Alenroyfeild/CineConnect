@@ -8,7 +8,9 @@
 
 import Foundation
 
-struct MovieDetail: Codable {
+/// `Sendable`/`nonisolated` for the same reason as `Movie` - see its doc
+/// comment.
+nonisolated struct MovieDetail: Codable, Sendable {
     let title: String
     let subtitle: String?
     let description: String?

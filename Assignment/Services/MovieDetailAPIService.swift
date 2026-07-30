@@ -7,7 +7,9 @@
 
 import Foundation
 
-protocol MovieDetailAPIServiceProtocol {
+/// `Sendable`: `DefaultMovieRepository` (Phase 6) captures a value of this
+/// type inside a `@Sendable` closure passed to `InFlightRequestStore`.
+protocol MovieDetailAPIServiceProtocol: Sendable {
     func fetchMovieDetail(slug: String) async throws -> MovieDetail
 }
 

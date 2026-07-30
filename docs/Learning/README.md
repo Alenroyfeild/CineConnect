@@ -29,7 +29,7 @@ when each piece landed.
 | Domain/repository/DTO/mapper boundary (`MovieRepository`, `DefaultMovieRepository`, use cases) | Implemented and verified |
 | Networking (retry policy, `200..<300` fix, encoding fix, injected interceptor, structured errors) | Implemented and verified |
 | Credentials store (Keychain-backed `CredentialsStore`) / UIKit auth bridge | Implemented and verified (real Keychain calls untested in this environment - see Phase 5 doc §10/§18) |
-| Actor-based memory/disk caches, request coalescing | Planned (Phase 6) |
+| Actor-based memory/disk caches, request coalescing | Implemented and verified |
 | Combine/cancellation hardening | Planned (Phase 7 — the debounced search pipeline itself already exists from before this migration; Phase 7 is about hardening and documenting it, not building it from scratch) |
 | Cached image pipeline | Planned (Phase 8) |
 | Project renaming, accessibility, CI, final docs | Planned (Phase 9) |
@@ -42,11 +42,12 @@ when each piece landed.
 4. `Architecture/Phase-03-Domain-and-Repository.md`
 5. `Architecture/Phase-04-Networking.md`
 6. `Architecture/Phase-05-Authentication.md` — also read `../SWIFTUI_UIKIT_INTEROPERABILITY.md` alongside this one.
-7. `FILE_INDEX.md` — once you want file-by-file depth.
-8. `CONCEPT_TO_CODE_MAP.md` — once you want concept-first navigation instead of file-first.
+7. `Architecture/Phase-06-Caching.md` — read this one carefully if you're prepping for actor/concurrency interview questions; it has the project's clearest reentrancy example.
+8. `FILE_INDEX.md` — once you want file-by-file depth.
+9. `CONCEPT_TO_CODE_MAP.md` — once you want concept-first navigation instead of file-first.
 
-Phase 6 (actor-based caches) is next; its doc will appear here once that
-phase actually lands.
+Phase 7 (Combine/cancellation hardening) is next; its doc will appear here
+once that phase actually lands.
 
 ## Code-reading order
 

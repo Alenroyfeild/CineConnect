@@ -38,6 +38,10 @@ are never left referenced here under their old name.
 | `Assignment/Storage/CredentialsStore.swift` | Storage | `actor` | Owns credential composition and the authenticated/not decision | Phase 5 | `SecureKeyValueStoring` | `AuthManager` | `CredentialsStoreTests` (5, via `InMemoryKeyValueStore`) | Protocol-backed dependency for testability |
 | `Assignment/Storage/WebDataClearingService.swift` | Storage | `@MainActor final class` | Consolidates WebKit/cookie/URL-cache clearing (was duplicated in two places) | Phase 5 | `WKWebsiteDataStore`, `HTTPCookieStorage`, `URLCache` | `AuthManager`, `LoginViewController` | None dedicated (exercised indirectly via `AuthManagerTests.logoutClearsCredentialsAndIsLoggedIn`) | `withCheckedContinuation` bridging a completion-handler API |
 | `Assignment/Views/Login/HotstarCredentialExtractor.swift` | Authentication | `enum` (pure functions) | Extracts a usable session token/cookie string from raw `HTTPCookie`s | Phase 5 | — | `LoginViewController` | `HotstarCredentialExtractorTests` (6) | Pure logic pulled out of a UIKit/WebKit callback specifically for testability |
+| `Assignment/Caching/MemoryCache.swift` | Caching | generic `actor` | TTL + LRU in-memory cache, hit/miss tracking | Phase 6 | — | `DefaultMovieRepository` | `MemoryCacheTests` (8) | Actor protecting genuine shared mutable state (unlike `KeychainStore`) |
+| `Assignment/Caching/DiskCache.swift` | Caching | generic `actor` | TTL disk cache, corrupt-file recovery | Phase 6 | — | `DefaultMovieRepository` (detail only) | `DiskCacheTests` (5) | `nonisolated(unsafe)` on a documented-safe SDK singleton reference |
+| `Assignment/Caching/InFlightRequestStore.swift` | Caching | generic `actor` | Request coalescing | Phase 6 | — | `DefaultMovieRepository` | `InFlightRequestStoreTests` (4) | The project's clearest concrete actor-reentrancy example |
+| `Assignment/Caching/CachePolicy.swift` | Caching | `enum` | Three distinct cache-access behaviors | Phase 6 | — | `MovieRepository`, `DefaultMovieRepository` | Exercised by all `DefaultMovieRepositoryTests` | Deliberately excludes a fourth, redundant case |
 
 ## Detailed entries
 
@@ -359,13 +363,21 @@ ViewModel; with a typed route, the row only declares *intent*
 construction, which is what lets `MoviesCoordinator` (not the View) own
 future deep-link handling.
 
-### Counter-question
-"You still construct `MovieSearchAPIService`/`MovieDetailAPIService`
+### Counter-question (updated Phase 6 — the original answer here is now stale, kept for the audit trail)
+Originally: "you still construct `MovieSearchAPIService`/`MovieDetailAPIService`
 directly in this coordinator — isn't that the same singleton-construction
-problem, just moved?" — Yes, honestly: this phase moved *where* concrete
-dependencies are constructed (out of the Views), not *how* they're
-constructed (still concrete types, not an injected `MovieRepository`
-protocol). That's exactly Phase 3's job, in progress now.
+problem, just moved?" Phase 3 answered that by introducing `MovieRepository`.
+The *current* version of this question: "`movieRepository` is now a
+`private let`, built once in `init` — why does that matter?" Because
+Phase 6 gave `DefaultMovieRepository` real cache state
+(`MemoryCache`/`DiskCache` actors); a fresh repository per screen (which
+`makeDetailViewModel()` used to build, calling `makeMovieRepository()`
+every time) would have meant a fresh, empty cache every time too —
+revisiting the same movie's detail screen would never hit its own cache.
+Storing one instance for the coordinator's lifetime (which itself spans
+the whole app session, owned by `AppCoordinator`) fixes that — and is
+exactly why `performLogout()` has to explicitly clear that repository's
+caches, since it would otherwise persist across a logout/re-login cycle.
 
 ### Trade-off
 Explicit `NavigationPath` ownership adds a small amount of boilerplate (the

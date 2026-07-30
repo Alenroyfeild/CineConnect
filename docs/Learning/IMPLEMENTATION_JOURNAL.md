@@ -410,7 +410,87 @@ swappable storage now.
 
 ---
 
-## Phase 6 onward
+## Phase 6 — Actor-based caches and request coalescing
+
+**Previous design:** `MovieCache` was a plain class - one flat disk cache,
+no TTL, no eviction, no request coalescing. `MoviesCoordinator` also
+(a bug found during this phase's own design work, not inherited) built a
+*fresh* repository instance per screen, which would have made per-instance
+cache actors pointless.
+
+**New design:** `MemoryCache<Key,Value>` (TTL, LRU, hit/miss tracking),
+`DiskCache<Value>` (detail only - search stays memory-only, see
+`MovieRepository`'s doc comment for why), and
+`InFlightRequestStore<Key,Value>` (coalescing), all actors.
+`CachePolicy` (`.networkFirst`/`.cacheFirst`/`.reloadIgnoringCache`) drives
+`DefaultMovieRepository`. `MoviesCoordinator` now builds one repository
+per coordinator lifetime, fixing the bug above. Caches clear on logout via
+`MoviesCoordinator.performLogout()`.
+
+**Files changed:** see `Architecture/Phase-06-Caching.md` §4-6.
+
+**Runtime behavior:** unchanged for the user under normal conditions.
+Real behavior improvements: revisiting a movie's detail screen within its
+TTL now hits cache instead of the network (fixed alongside introducing
+the caches, since the per-screen-repository bug would have silently
+defeated them); ten simultaneous identical detail requests now trigger
+one network call, not ten; caches are cleared on logout.
+
+**The compiler-inference pattern from Phases 1/3/4/5 hit hardest here:**
+`MemoryCache<String, MovieDetail>` failed to *compile* (not just warn)
+with "main actor-isolated conformance of 'MovieDetail' to 'Decodable'
+cannot satisfy... 'Sendable'" - the project's default-actor-isolation
+setting infers even a plain data model's own protocol conformances as
+`@MainActor`-isolated unless told otherwise. Fixed by marking `Movie` and
+`MovieDetail` `nonisolated struct`. Three related fixes: `DiskCache`'s
+`FileManager` reference needed `nonisolated(unsafe)` (`FileManager` itself
+isn't `Sendable` in the SDK, though `.default` is documented safe for
+concurrent use); the API service protocols needed `: Sendable` added
+(captured in `@Sendable` closures now); their test fakes needed
+`@unchecked Sendable` (configured once before concurrent use, an already-
+established pattern in this codebase).
+
+**A real test bug, also found and fixed:** an early version of
+`MemoryCacheTests.staleValueIsReturnedEvenAfterExpiry` checked the fresh
+(evicting) read before the stale (non-evicting) read, so the stale check
+found nothing - fixed by reordering, which also strengthened what the
+test actually proves.
+
+**Tests added:** 26 new tests - `MemoryCacheTests` (8), `DiskCacheTests`
+(5), `InFlightRequestStoreTests` (4, including the actor-reentrancy
+scenario the migration brief specifically asked for), and
+`DefaultMovieRepositoryTests` expanded from 5 to 14.
+
+**Build result:** clean, 0 warnings, 102/102 tests passing.
+
+**Alternatives considered:** one generic cache actor covering both memory
+and disk (rejected - different failure modes deserve different types); a
+fourth `CachePolicy` case (`.returnCacheElseLoad`, rejected as redundant
+with `.cacheFirst`); an app-wide single repository instance instead of
+per-coordinator (considered, kept feature-scoped since it's functionally
+equivalent today given `MoviesCoordinator`'s own app-session lifetime).
+
+**Why the final approach was selected:** three focused, generic actor
+types map directly onto three distinct real needs (bounded fast memory,
+durable detail storage, deduplication), each independently testable and
+each with one clear job.
+
+**New interview concepts demonstrated:** the sharpest example yet of this
+project's recurring default-actor-isolation-inference gotcha, this time
+blocking compilation rather than just warning; `nonisolated`/
+`nonisolated(unsafe)` as the two different tools for two different
+reasons (a type with no isolation need at all, vs. a specific SDK type
+documented safe for concurrent use despite not being formally `Sendable`);
+a concrete, tested actor-reentrancy scenario with a matching "break it on
+purpose" exercise.
+
+**Remaining debt:** `clearCaches()` doesn't cancel in-flight requests; no
+memory-warning-driven eviction; `.reloadIgnoringCache` has no UI trigger
+yet (Phase 9).
+
+---
+
+## Phase 7 onward
 
 Not started. See `docs/ARCHITECTURE_REFACTOR_PLAN.md` for the full phase
 list and `docs/Learning/README.md` for current status labels.
