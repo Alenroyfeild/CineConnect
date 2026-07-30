@@ -9,6 +9,14 @@ import UIKit
 import WebKit
 import SwiftUI
 
+/// `@MainActor`: closes a gap tracked since Phase 4/5 ("not `@MainActor`
+/// -annotated explicitly"). UIKit view controllers are main-thread-bound
+/// in practice already; making that explicit is what let this class's
+/// `WKNavigationDelegate` conformance fully match the protocol's own
+/// (main-actor-isolated) method signatures under `SWIFT_STRICT_CONCURRENCY
+/// = complete` (Phase 9) - without it, `decidePolicyFor:decisionHandler:`
+/// only "nearly matched" the optional requirement instead of overriding it.
+@MainActor
 class LoginViewController: UIViewController {
     var onAuthenticated: (() -> Void)?
     private var webView: WKWebView!
@@ -246,14 +254,25 @@ extension LoginViewController: WKNavigationDelegate {
         }
     }
 
-    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+    /// The three-parameter overload (with `preferences:`) is the SDK's
+    /// current actual `WKNavigationDelegate` requirement - the older
+    /// two-parameter form used before this phase compiled and ran (WebKit
+    /// still called it via a compatibility path) but only "nearly matched"
+    /// the real requirement under `SWIFT_STRICT_CONCURRENCY = complete`
+    /// (Phase 9), since it wasn't actually overriding anything.
+    func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationAction: WKNavigationAction,
+        preferences: WKWebpagePreferences,
+        decisionHandler: @escaping @MainActor (WKNavigationActionPolicy, WKWebpagePreferences) -> Void
+    ) {
         if let url = navigationAction.request.url {
             if url.absoluteString.contains("apps.apple.com") || url.absoluteString.contains("itunes.apple.com") {
-                decisionHandler(.cancel)
+                decisionHandler(.cancel, preferences)
                 return
             }
         }
 
-        decisionHandler(.allow)
+        decisionHandler(.allow, preferences)
     }
 }

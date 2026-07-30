@@ -52,6 +52,8 @@ struct MoviesListView: View {
                         Image(systemName: "rectangle.portrait.and.arrow.right")
                             .foregroundColor(.red)
                     }
+                    .accessibilityIdentifier("logoutButton")
+                    .accessibilityLabel("Logout")
                 }
             }
             .alert("Logout", isPresented: $showingLogoutAlert) {
@@ -161,13 +163,15 @@ struct MoviesListView: View {
                         MovieSearchRowView(movie: movie)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("movieRow-\(movie.id)")
                 }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
         }
+        .accessibilityIdentifier("movieSearchResultsList")
     }
-    
+
     private func logout() {
         Task {
             await authManager.logout()
@@ -206,8 +210,9 @@ struct MovieSearchRowView: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(AppTheme.surfaceBorder, lineWidth: 1)
         )
+        .accessibilityElement(children: .combine)
     }
-    
+
     @ViewBuilder
     private var posterImage: some View {
         CachedAsyncImage(url: movie.posterURL) { phase in

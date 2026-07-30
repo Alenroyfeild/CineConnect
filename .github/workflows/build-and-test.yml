@@ -1,0 +1,44 @@
+name: Build and test
+
+on:
+  push:
+  pull_request:
+
+# NOTE (documented honestly, not silently assumed): this workflow has not
+# been run on actual GitHub Actions infrastructure - this session has no
+# way to trigger or observe a GitHub-hosted runner. It's written to be
+# resilient to exactly-which-Xcode-is-preinstalled by selecting the latest
+# available Xcode and simulator at run time, rather than pinning a specific
+# version this session can't confirm is present on GitHub's runner images -
+# but the very first real run should be treated as the actual verification,
+# not this file's existence.
+jobs:
+  build-and-test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select latest available Xcode
+        run: |
+          LATEST_XCODE=$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -1)
+          echo "Using $LATEST_XCODE"
+          sudo xcode-select -switch "$LATEST_XCODE/Contents/Developer"
+          xcodebuild -version
+
+      - name: Pick an available iPhone simulator
+        id: simulator
+        run: |
+          DEVICE_NAME=$(xcrun simctl list devices available --json \
+            | python3 -c "import json,sys; data=json.load(sys.stdin); names=[d['name'] for runtime in data['devices'].values() for d in runtime if 'iPhone' in d['name']]; print(names[-1] if names else '')")
+          echo "Selected simulator: $DEVICE_NAME"
+          echo "device_name=$DEVICE_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Build and test
+        run: |
+          xcodebuild \
+            -project Assignment.xcodeproj \
+            -scheme Assignment \
+            -destination "platform=iOS Simulator,name=${{ steps.simulator.outputs.device_name }}" \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            clean test

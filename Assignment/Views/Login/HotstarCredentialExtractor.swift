@@ -3,7 +3,15 @@ import Foundation
 /// Pure extraction logic pulled out of `LoginViewController` so it's
 /// testable without any `WKWebView`/UIKit dependency - `HTTPCookie` is a
 /// plain Foundation type constructible directly in a test.
-enum HotstarCredentialExtractor {
+///
+/// `nonisolated`: pure, stateless functions with no reason to be
+/// actor-isolated at all - without this, the project's default-actor-
+/// isolation setting infers this type's static methods as `@MainActor`
+/// (the same pattern documented on `Movie`/`MovieDetail`, Phase 6),
+/// which under `SWIFT_STRICT_CONCURRENCY = complete` (Phase 9) surfaced
+/// as warnings in every test calling `extract(from:)` from a plain
+/// (non-`@MainActor`) test struct.
+nonisolated enum HotstarCredentialExtractor {
     private static let essentialCookieNames: Set<String> = [
         "userUP", "sessionUserUP", "userHID", "userPID",
         "deviceId", "loc", "geo", "SELECTED__LANGUAGE"

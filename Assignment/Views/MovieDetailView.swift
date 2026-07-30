@@ -35,6 +35,7 @@ struct MovieDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .animation(.easeInOut(duration: 0.3), value: viewModel.isLoading)
         .animation(.easeInOut(duration: 0.3), value: viewModel.detailError)
+        .accessibilityIdentifier("movieDetailScreen")
         .task(id: movie.pageSlug) {
             await viewModel.loadMovieDetail(slug: movie.pageSlug)
         }
