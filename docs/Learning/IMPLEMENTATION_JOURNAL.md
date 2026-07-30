@@ -623,7 +623,97 @@ cancellation-on-disappear relies on `.task(id:)` without a dedicated test.
 
 ---
 
-## Phase 9 onward
+## Phase 9 — Strict concurrency, accessibility, CI, and the rename (commits `8f8cd97`, `fd8e032`)
 
-Not started. See `docs/ARCHITECTURE_REFACTOR_PLAN.md` for the full phase
-list and `docs/Learning/README.md` for current status labels.
+**Previous design:** no `SWIFT_STRICT_CONCURRENCY` setting explicitly
+configured (Xcode's weaker default); `LoginViewController` not `@MainActor`
+-annotated despite being UIKit/main-thread-bound; no accessibility
+identifiers anywhere in the app; no CI workflow; project/target/scheme/
+bundle identifier still named `Assignment`, a placeholder predating this
+migration's real product identity.
+
+**New design (9a):** `SWIFT_STRICT_CONCURRENCY = complete` across all three
+targets; `@MainActor` added to `LoginViewController` (which also fixed its
+`WKNavigationDelegate` conformance only "nearly matching" the SDK's real
+3-parameter, `@MainActor`-closured requirement); `nonisolated` added to
+`HotstarCredentialExtractor`; `@MainActor` added to the UI test class;
+accessibility identifiers added to `MoviesListView`/`MovieDetailView`
+(`logoutButton`, `movieRow-<id>`, `movieSearchResultsList`,
+`movieDetailScreen`); `.github/workflows/build-and-test.yml` added.
+
+**New design (9b):** every `Assignment*` file, folder, target, scheme, and
+bundle identifier renamed to `CineConnect*` (`git mv` for directories and
+the two files `sed` alone couldn't rename, then `sed` for file contents and
+`project.pbxproj`); every doc reference updated; `README.md` given a full
+content rewrite (it had drifted architecturally stale independent of the
+rename itself - still described the pre-migration folder structure and said
+"there is no test target yet").
+
+**Files changed:** see `Architecture/Phase-09-Project-Quality.md` §4-6.
+
+**Runtime behavior:** unchanged for the user in both sub-phases - this
+phase is build settings, static accessibility metadata, CI config, and
+naming, not application logic.
+
+**How much of Phases 1-8's isolation discipline paid off:** turning on the
+strictest concurrency setting for the first time, after five phases of
+already fixing every default-argument-isolation/`nonisolated`/`Sendable`
+issue those phases hit along the way, surfaced only three remaining real
+issues project-wide - a strong, disclosed data point for "incremental
+concurrency discipline beats a single big-bang strict-mode adoption," not
+proof the codebase was flawless before this phase.
+
+**Tests added:** none (accessibility identifiers and a rename don't need
+new coverage of their own - the acid test is the existing 108 passing
+unchanged before and after both sub-phases).
+
+**Build result:** clean, 0 warnings under full strict concurrency, 108/108
+tests passing - re-verified in full after the rename as well, to prove it
+changed names only, not behavior.
+
+**Alternatives considered:** deferring strict-concurrency adoption until
+Swift 6 eventually forces it (rejected - this migration's whole point is
+demonstrating disciplined concurrency, so checking it under a weaker mode
+the whole time would leave every phase's isolation claims unverified against
+the real target); skipping accessibility identifiers until a UI test needed
+one (rejected - `CineConnectUITests`'s own comment already promised
+critical-path tests once identifiers existed; adding them is the honest
+first step, even though the tests themselves aren't written yet - see
+remaining debt below); pinning a specific Xcode/simulator version in CI
+(rejected for this environment - this session can't inspect GitHub's runner
+image contents, so "select latest available at runtime" is more resilient
+to that unknown, at the cost of CI/local toolchain-version reproducibility).
+
+**A real gap the rename step caught, not just avoided:** `check-docs-links.sh`
+flagged a stale path reference after the first rename pass -
+`CineConnectTests/AssignmentTests.swift` and `CineConnectUITests/AssignmentUITests.swift`
+still had their old filenames even though their parent directories had
+already been renamed and their contents already `sed`-substituted; fixed
+with an explicit `git mv` on the two files themselves.
+
+**New interview concepts demonstrated:** the practical payoff of
+incremental, phase-by-phase concurrency discipline versus deferring it to
+one big-bang strict-mode adoption; `WKNavigationDelegate`'s real (3-param,
+`@MainActor`-closured) requirement versus an older 2-param form that still
+compiles and runs but doesn't actually override anything; accessibility
+identifiers as a stated prerequisite for UI testing, honestly distinguished
+from the UI tests themselves actually existing; a project-wide rename
+performed only after 108 tests exist to catch a mistake, in its own
+isolated, easily-revertible commit.
+
+**Remaining debt:** the critical-path UI tests (search, detail, logout)
+`CineConnectUITests.swift`'s own comment describes are still not written -
+only their prerequisite (accessibility identifiers) landed this phase; the
+CI workflow has not been observed running on real GitHub Actions
+infrastructure from this session; `KeychainStore`'s real Keychain calls
+remain untested here (Phase 5, unrelated to this phase); `clearCaches()`
+still doesn't cancel in-flight requests (Phase 6); no redacted structured
+logging exists yet.
+
+---
+
+**Added `docs/INTERVIEW_GUIDE.md` and `docs/LEARNING_EXERCISES.md`** -
+cross-cutting indexes assembled from every phase doc's own Interview Q&A and
+Exercises sections, exactly as `docs/Learning/README.md` said they would be
+once every phase's questions already existed to assemble rather than invent
+fresh.

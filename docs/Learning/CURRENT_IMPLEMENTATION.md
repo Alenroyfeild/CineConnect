@@ -2,7 +2,7 @@
 
 Updated after every phase. If this table and the actual code disagree, the
 code is right and this file is stale — file it as a bug in the migration,
-don't trust the table blindly. Last updated: end of Phase 8.
+don't trust the table blindly. Last updated: end of Phase 9.
 
 | Area | Current implementation | Key files | Tests | Build status | Remaining gaps |
 |---|---|---|---|---|---|
@@ -20,7 +20,11 @@ don't trust the table blindly. Last updated: end of Phase 8.
 | Combine | One pipeline: `$searchText` → `debounce` (injectable interval) → `removeDuplicates` → `sink` → `Task`; fully documented operator-by-operator | `MovieSearchViewModel.swift`, `docs/COMBINE_SEARCH_PIPELINE.md` | `MovieSearchViewModelTests` (6) | Passing | Tests use a real short interval, not a virtual-time scheduler (Combine doesn't ship one publicly) |
 | Concurrency | `@MainActor` ViewModels/coordinators; `KeychainStore`/`CredentialsStore` (Phase 5) plus `MemoryCache`/`DiskCache`/`InFlightRequestStore` (Phase 6) are real actors; project-wide `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` required `nonisolated` on `Movie`/`MovieDetail` and `nonisolated(unsafe)` on `DiskCache`'s `FileManager` reference (see Phase 6 doc §10) | `CineConnect/Caching/*.swift`, `CineConnect/Storage/*.swift` | `InFlightRequestStoreTests` includes a documented actor-reentrancy scenario | Passing | No memory-warning-driven proactive cache eviction |
 | Testing | `CineConnectTests` (Swift Testing, 107 tests) + `CineConnectUITests` (XCTest, 1 smoke test) | `CineConnectTests/*.swift`, `CineConnectTests/Fakes/*.swift`, `CineConnectUITests/CineConnectUITests.swift` | 108 tests total, all passing | Passing | Real Keychain calls untested in this environment (documented limitation, not silently skipped) |
-| Documentation | `docs/ARCHITECTURE_REFACTOR_PLAN.md` (migration plan) + this `docs/Learning/` area | `docs/*.md`, `docs/Learning/*.md` | N/A | N/A | Kept in sync phase-by-phase per this file's own header note |
+| Documentation | `docs/ARCHITECTURE_REFACTOR_PLAN.md` (migration plan) + this `docs/Learning/` area + `docs/INTERVIEW_GUIDE.md`/`docs/LEARNING_EXERCISES.md` (cross-cutting indexes) | `docs/*.md`, `docs/Learning/*.md` | N/A | N/A | Kept in sync phase-by-phase per this file's own header note |
+| Concurrency checking (project setting) | `SWIFT_STRICT_CONCURRENCY = complete` across all three targets (Phase 9), surfacing only 3 remaining issues after 5 phases of incremental isolation fixes | `CineConnect.xcodeproj/project.pbxproj` | Whole suite (108/108 must still pass under the stricter setting) | Passing | N/A |
+| Accessibility | Identifiers on the logout button, each search result row, the results list, and the detail screen; a VoiceOver label on logout | `CineConnect/Views/MoviesListView.swift`, `MovieDetailView.swift` | None directly yet — added as the stated prerequisite for UI tests, not proof they exist (see `CineConnectUITests.swift`'s own comment) | N/A | Critical-path UI tests (search, detail, logout) promised by `CineConnectUITests.swift`'s comment are still not written |
+| CI | GitHub Actions workflow running the same `xcodebuild ... clean test` command used throughout this session, selecting the latest available Xcode/simulator at runtime | `.github/workflows/build-and-test.yml`, `.github/workflows/secret-scan.yml` | N/A | Authored and reasoned about carefully; **not observed running on real GitHub Actions from this session** | First real run is the actual verification, not this file's existence |
+| Project naming | Fully renamed `Assignment` → `CineConnect` (files, folders, target/scheme names, bundle id `com.alenroyfeild.CineConnect`, all doc references), performed only after 108 tests existed to catch a mistake, in its own isolated commit | Every renamed file; `CineConnect.xcodeproj/project.pbxproj` | Full suite re-run after rename, unchanged pass count | Passing | N/A |
 
 ## Verification for this snapshot
 

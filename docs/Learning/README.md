@@ -32,7 +32,11 @@ when each piece landed.
 | Actor-based memory/disk caches, request coalescing | Implemented and verified |
 | Combine/cancellation hardening (injectable debounce interval) | Implemented and verified |
 | Cached image pipeline | Implemented and verified |
-| Project renaming, accessibility, CI, final docs | Planned (Phase 9) |
+| Swift 6 strict concurrency (`SWIFT_STRICT_CONCURRENCY = complete`) | Implemented and verified |
+| Accessibility identifiers (logout, rows, list, detail screen) | Implemented and verified — critical-path UI tests that would consume them are **not yet written** (see Phase 9 doc §18) |
+| CI (`build-and-test.yml`, `secret-scan.yml`) | Implemented but partially tested — authored and reasoned about carefully, not yet observed running on real GitHub Actions from this session |
+| Project rename (`Assignment` → `CineConnect`) | Implemented and verified |
+| Cross-cutting interview guide / exercises index | Implemented and verified |
 
 ## Reading order
 
@@ -45,11 +49,9 @@ when each piece landed.
 7. `Architecture/Phase-06-Caching.md` — read this one carefully if you're prepping for actor/concurrency interview questions; it has the project's clearest reentrancy example.
 8. `Architecture/Phase-07-Combine-and-Cancellation.md` — also read `../COMBINE_SEARCH_PIPELINE.md` alongside this one.
 9. `Architecture/Phase-08-Image-Pipeline.md`
-10. `FILE_INDEX.md` — once you want file-by-file depth.
-11. `CONCEPT_TO_CODE_MAP.md` — once you want concept-first navigation instead of file-first.
-
-Phase 9 (project quality: renaming, accessibility, CI, final docs) is
-next; its doc will appear here once that phase actually lands.
+10. `Architecture/Phase-09-Project-Quality.md` — strict concurrency, accessibility, CI, and the `Assignment` → `CineConnect` rename.
+11. `FILE_INDEX.md` — once you want file-by-file depth.
+12. `CONCEPT_TO_CODE_MAP.md` — once you want concept-first navigation instead of file-first.
 
 ## Code-reading order
 
@@ -63,21 +65,24 @@ next; its doc will appear here once that phase actually lands.
 
 Each phase doc under `Architecture/` ends with its own interview Q&A,
 counter-questions, and exercises for exactly what that phase implemented —
-read them in the same order as the phase docs above. A cross-cutting
-`docs/INTERVIEW_GUIDE.md` (outside this folder) is planned for Phase 9, once
-every phase's questions already exist here and can be assembled rather than
-invented fresh.
+read them in the same order as the phase docs above. `../INTERVIEW_GUIDE.md`
+(outside this folder) is the cross-cutting index assembled from every
+phase's own questions, now that all nine phases exist to assemble from.
 
 ## Exercise order
 
 Exercises live at the end of each phase document, scoped to what that phase
 actually built. Do Phase 1's and Phase 2's exercises before Phase 3's — they
 assume you can read the composition root and coordinator code fluently.
+`../LEARNING_EXERCISES.md` indexes every phase's exercises in one place, in
+the same order.
 
 ## Links to other documentation
 
 - [`../ARCHITECTURE_REFACTOR_PLAN.md`](../ARCHITECTURE_REFACTOR_PLAN.md) — the full migration plan, phase list, and CC0–CC4 audit.
 - [`../../SECURITY.md`](../../SECURITY.md) — the credential-exposure incident and remediation (kept in place, not moved here).
+- [`../INTERVIEW_GUIDE.md`](../INTERVIEW_GUIDE.md) — cross-cutting interview-question index across all nine phases.
+- [`../LEARNING_EXERCISES.md`](../LEARNING_EXERCISES.md) — cross-cutting exercise index across all nine phases.
 - Test suites: [`CineConnectTests/`](../../CineConnectTests/), [`CineConnectUITests/`](../../CineConnectUITests/).
 
 ## A note on folder structure
