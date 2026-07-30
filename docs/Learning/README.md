@@ -30,7 +30,7 @@ when each piece landed.
 | Networking (retry policy, `200..<300` fix, encoding fix, injected interceptor, structured errors) | Implemented and verified |
 | Credentials store (Keychain-backed `CredentialsStore`) / UIKit auth bridge | Implemented and verified (real Keychain calls untested in this environment - see Phase 5 doc §10/§18) |
 | Actor-based memory/disk caches, request coalescing | Implemented and verified |
-| Combine/cancellation hardening | Planned (Phase 7 — the debounced search pipeline itself already exists from before this migration; Phase 7 is about hardening and documenting it, not building it from scratch) |
+| Combine/cancellation hardening (injectable debounce interval) | Implemented and verified |
 | Cached image pipeline | Planned (Phase 8) |
 | Project renaming, accessibility, CI, final docs | Planned (Phase 9) |
 
@@ -43,11 +43,12 @@ when each piece landed.
 5. `Architecture/Phase-04-Networking.md`
 6. `Architecture/Phase-05-Authentication.md` — also read `../SWIFTUI_UIKIT_INTEROPERABILITY.md` alongside this one.
 7. `Architecture/Phase-06-Caching.md` — read this one carefully if you're prepping for actor/concurrency interview questions; it has the project's clearest reentrancy example.
-8. `FILE_INDEX.md` — once you want file-by-file depth.
-9. `CONCEPT_TO_CODE_MAP.md` — once you want concept-first navigation instead of file-first.
+8. `Architecture/Phase-07-Combine-and-Cancellation.md` — also read `../COMBINE_SEARCH_PIPELINE.md` alongside this one.
+9. `FILE_INDEX.md` — once you want file-by-file depth.
+10. `CONCEPT_TO_CODE_MAP.md` — once you want concept-first navigation instead of file-first.
 
-Phase 7 (Combine/cancellation hardening) is next; its doc will appear here
-once that phase actually lands.
+Phase 8 (cached image pipeline) is next; its doc will appear here once
+that phase actually lands.
 
 ## Code-reading order
 

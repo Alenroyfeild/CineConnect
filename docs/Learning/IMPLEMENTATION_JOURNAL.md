@@ -490,7 +490,71 @@ yet (Phase 9).
 
 ---
 
-## Phase 7 onward
+## Phase 7 — Combine and cancellation hardening
+
+**Previous design:** the debounce pipeline in `MovieSearchViewModel`
+already existed pre-migration with the right shape (`debounce` →
+`removeDuplicates` → `sink` → cancel-on-new-input `Task`), but its
+500ms interval was a literal, not a parameter - every timing-sensitive
+test had to wait a generous real margin over 500ms.
+
+**New design:** `debounceInterval` is now an injectable constructor
+parameter (default `.milliseconds(500)`, unchanged production behavior).
+Tests use 5-20ms intervals instead.
+
+**Files changed:** `Assignment/ViewModels/MovieSearchViewModel.swift`,
+`AssignmentTests/MovieSearchViewModelTests.swift`.
+
+**Runtime behavior:** unchanged for the user - the production default is
+identical to the pre-Phase-7 hardcoded value.
+
+**A real tuning story from this phase:** the first attempt used a uniform
+5ms debounce / 60ms settle margin for every test, including the two-cycle
+"search race" test - which then failed under normal test-suite load (too
+tight for a test with two sequential debounce-and-cancel cycles plus real
+`Task` scheduling). Fixed by giving that one test looser margins (20ms/
+150ms) while keeping the simpler tests fast, then running it three times
+back-to-back to confirm stability before considering the phase done.
+
+**Tests added:** 1 new (`rapidTypingOnlyTriggersOneSearchAfterTypingStops`);
+the existing 5 `MovieSearchViewModelTests` rewritten to run fast instead
+of waiting 750ms each.
+
+**Build result:** clean, 0 warnings, 103/103 tests passing.
+
+**Alternatives considered:** a full virtual-time Combine scheduler
+(rejected - Combine doesn't ship one publicly, and building one correctly
+is disproportionate to this app's one pipeline); rebuilding the pipeline
+around `AsyncSequence` (rejected - `debounce`/`removeDuplicates` are
+well-tested Combine operators with no direct standard-library
+`AsyncSequence` equivalent, and the pipeline wasn't broken, just
+untestable-fast); leaving `500` hardcoded and marking timing tests as
+slow/skipped (rejected - hides the problem instead of fixing it).
+
+**Why the final approach was selected:** the smallest change that
+actually solves "tests are slow because of an unconfigurable literal" -
+one injectable parameter, no framework or architecture change.
+
+**New interview concepts demonstrated:** why `Future`-wrapping async work
+in Combine is a known foot-gun (eager execution, no automatic cancellation
+forwarding) and why this pipeline avoids it entirely by keeping networking
+in `async/await`; that "how short can a timing test's interval safely go"
+depends on how many sequential timing-dependent steps that specific test
+has, not a single universal number.
+
+**Remaining debt:** timing-based tests remain real-clock-dependent, not
+immune to extreme scheduling jitter (a virtual scheduler would fix this,
+judged not worth building for one pipeline); no UI exposes the debounce
+interval as a setting.
+
+**Added `docs/COMBINE_SEARCH_PIPELINE.md`** - the standalone
+operator-by-operator reference for this pipeline, since it's linked from
+multiple other documents and reads better as its own page than embedded
+in the phase journal.
+
+---
+
+## Phase 8 onward
 
 Not started. See `docs/ARCHITECTURE_REFACTOR_PLAN.md` for the full phase
 list and `docs/Learning/README.md` for current status labels.

@@ -16,11 +16,19 @@ final class MovieSearchViewModel: ObservableObject {
     @Published var searchError: SearchError?
 
     private let searchMovies: SearchMoviesUseCase
+    private let debounceInterval: DispatchQueue.SchedulerTimeType.Stride
     private var cancellables = Set<AnyCancellable>()
     private var searchTask: Task<Void, Never>?
 
-    init(searchMovies: SearchMoviesUseCase) {
+    /// `debounceInterval` defaults to the real 500ms used in production,
+    /// but is injectable so tests don't have to wait on real wall-clock
+    /// time - `MovieSearchViewModelTests` uses a few milliseconds instead,
+    /// making the whole suite fast and deterministic rather than padded
+    /// with generous sleeps around a fixed 500ms (Phase 7; see
+    /// docs/Learning/Architecture/Phase-07-Combine-and-Cancellation.md).
+    init(searchMovies: SearchMoviesUseCase, debounceInterval: DispatchQueue.SchedulerTimeType.Stride = .milliseconds(500)) {
         self.searchMovies = searchMovies
+        self.debounceInterval = debounceInterval
         setupSearchObserver()
     }
 
@@ -32,7 +40,7 @@ final class MovieSearchViewModel: ObservableObject {
     /// not just this ViewModel. See `SearchMoviesUseCase`'s doc comment.
     private func setupSearchObserver() {
         $searchText
-            .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
+            .debounce(for: debounceInterval, scheduler: DispatchQueue.main)
             .removeDuplicates()
             .sink { [weak self] query in
                 guard let self else { return }
