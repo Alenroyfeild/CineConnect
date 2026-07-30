@@ -10,40 +10,40 @@ are never left referenced here under their old name.
 
 | File | Layer | Type | Responsibility | Created by | Dependencies | Used by | Tests | Interview concepts |
 |---|---|---|---|---|---|---|---|---|
-| `Assignment/App/AppDependencyContainer.swift` | App/Composition | `final class` | Composition root; owns `AuthManager`, builds `AppCoordinator` | CC7 | `AuthManager` | `AssignmentApp` | `AppCoordinatorTests.dependencyContainerWiresACoordinator` | DI, composition root, default-argument actor isolation |
-| `Assignment/Coordinators/Coordinator.swift` | App/Navigation | `protocol` | Common `makeView()` contract for coordinators | CC1 | — | `AppCoordinator`, `AuthenticationCoordinator`, `MoviesCoordinator` | Indirectly, via conforming types | `associatedtype`, `@MainActor` protocols |
-| `Assignment/Coordinators/AppCoordinator.swift` | App/Navigation | `final class`, `@MainActor`, `ObservableObject` | Chooses `.auth`/`.movies` root, owns both child coordinators | CC1, refactored CC7 | `AuthManager`, `AuthenticationCoordinator`, `MoviesCoordinator` | `AssignmentApp` | `AppCoordinatorTests` (5 of 6) | State-driven root switching, `@Published private(set)` |
-| `Assignment/Coordinators/AuthenticationCoordinator.swift` | Authentication | `final class`, `@MainActor` | Creates the login flow, forwards completion | CC1 as `AuthCoordinator`, renamed+refactored CC7 | `AuthManager`, `LoginView` | `AppCoordinator` | `AppCoordinatorTests.authCoordinatorCompletionBubblesToAppCoordinator` | Closures as a SwiftUI↔coordinator bridge |
-| `Assignment/Coordinators/MoviesCoordinator.swift` | Movies/Navigation | `final class`, `@MainActor`, `ObservableObject` | Owns `NavigationPath`, resolves `MoviesRoute`, constructs feature ViewModels | CC1, refactored CC2/CC8 | `AuthManager`, `MoviesRoute`, `MovieSearchViewModel`, `MovieDetailViewModel`, API services | `AppCoordinator` | `MoviesCoordinatorTests`, `AppCoordinatorTests.moviesCoordinatorLogoutBubblesToAppCoordinator` | Typed routes, explicit `NavigationPath`, coordinator-as-factory |
-| `Assignment/Coordinators/MoviesRoute.swift` | Movies/Navigation | `enum: Hashable` | Typed navigation destination for the movies feature | CC8 | `Movie` | `MoviesCoordinator`, `MoviesListView` | `MoviesCoordinatorTests.appendingDetailRouteGrowsPath` | `Hashable` routes vs. raw model as nav value |
-| `Assignment/ViewModels/MovieSearchViewModel.swift` | Presentation | `final class`, `@MainActor`, `ObservableObject` | Search text pipeline, results/loading/error state | Pre-existing, injection added CC8 | `MovieSearchAPIServiceProtocol` | `MoviesListView`, `MoviesCoordinator` | None dedicated yet (Phase 3 gap) | Combine debounce, `Task` cancel-on-new-query, stale-result guard |
-| `Assignment/ViewModels/MovieDetailViewModel.swift` | Presentation | `final class`, `@MainActor`, `ObservableObject` | Detail load/loading/error state | Pre-existing, injection added CC8 | `MovieDetailAPIServiceProtocol` | `MovieDetailView`, `MoviesCoordinator` | None dedicated yet (Phase 3 gap) | `Task` cancellation via `.task(id:)`, `CancellationError` handling |
-| `Assignment/Views/Login/LoginViewController.swift` | Authentication/UIKit | `class: UIViewController` | WebKit login flow, credential extraction | Pre-existing, injected-`AuthManager` + pure-extraction rework Phase 5 | `AuthManager` (injected), `HotstarCredentialExtractor`, `WebDataClearingService` | `LoginView` | `HotstarCredentialExtractorTests` (indirectly, its extracted logic) | SwiftUI↔UIKit bridge, `WKNavigationDelegate`, no more `.shared` reference |
-| `Assignment/Views/Login/LoginView.swift` | Authentication/UIKit | `struct: UIViewControllerRepresentable` | Bridges `LoginViewController` into SwiftUI | Pre-existing, threads `authManager` Phase 5 | `LoginViewController`, `AuthManager` | `AuthenticationCoordinator` | None | `makeUIViewController`/`updateUIViewController`, closure-based event bridge |
-| `AssignmentTests/AppCoordinatorTests.swift` | Tests | `@Suite(.serialized) struct` | Coordinator routing tests | CC7 | `AppCoordinator`, `AuthManager.shared` | — | (is the test) | Integration test against a real singleton; `.serialized` to prevent races |
-| `AssignmentTests/MoviesCoordinatorTests.swift` | Tests | `struct` | Navigation path tests | CC8 | `MoviesCoordinator`, `MoviesRoute` | — | (is the test) | `NavigationPath.count`/`isEmpty` as the only inspectable state |
-| `Assignment/Domain/MovieRepository.swift` | Domain | `protocol` | Data-access boundary for the movies feature | Phase 3 | — | `DefaultMovieRepository`, both use cases | `DefaultMovieRepositoryTests` (via the concrete type) | Protocol as a substitution boundary, no `Sendable` yet (deliberately) |
-| `Assignment/Domain/UseCases/SearchMoviesUseCase.swift` | Domain | `struct` (`callAsFunction`) | Query normalization + "is there anything to search" decision | Phase 3 | `MovieRepository` | `MoviesCoordinator`, `MovieSearchViewModel` | `SearchMoviesUseCaseTests` (5) | Use case owning real application policy; `nil` as a third outcome distinct from empty/error |
-| `Assignment/Domain/UseCases/GetMovieDetailUseCase.swift` | Domain | `struct` (`callAsFunction`) | Forwards to `MovieRepository.movieDetail(slug:)` | Phase 3 | `MovieRepository` | `MoviesCoordinator`, `MovieDetailViewModel` | `GetMovieDetailUseCaseTests` (2) | Honest example of a use case that's currently a pass-through |
-| `Assignment/Data/DefaultMovieRepository.swift` | Data | `final class` | Coordinates remote data source + cache-fallback policy | Phase 3 | `MovieSearchAPIServiceProtocol`, `MovieDetailAPIServiceProtocol`, `MovieCache` | Both use cases (via `MovieRepository`) | `DefaultMovieRepositoryTests` (5) | Repository-owned cache policy, cancellation-vs-failure distinction |
-| `Assignment/Data/DTOs/MovieSearchDTO.swift`, `MovieDetailDTO.swift` | Data | `struct: Decodable` | Decode Hotstar's response shape | Pre-existing, moved Phase 3 | `Foundation` | `MovieSearchMapper`/`MovieDetailMapper` extensions, `MovieSearchAPIService`/`MovieDetailAPIService` | `MovieSearchMapperTests`, `MovieDetailMapperTests` | DTOs kept out of Domain entirely |
-| `Assignment/Data/Mappers/MovieSearchMapper.swift`, `MovieDetailMapper.swift` | Data | `extension` on the DTOs | Explicit DTO→domain mapping | Pre-existing logic, split into own files Phase 3 | `Movie`/`MovieDetail`, the DTOs | `MovieSearchAPIService`/`MovieDetailAPIService` | `MovieSearchMapperTests` (5), `MovieDetailMapperTests` (4) | Explicit mapping, missing-field/invalid-response handling |
-| `AssignmentTests/Fakes/FakeMovieRepository.swift` | Test doubles | `final class` | Configurable fake `MovieRepository` | Phase 3 | `MovieRepository` | Use-case and ViewModel tests | (is a fake, not a test) | Result-based configuration, per-query delay for race tests |
-| `AssignmentTests/Fakes/FakeMovieAPIServices.swift` | Test doubles | `final class` (x2) | Configurable fakes for the remote-data-source protocols | Phase 3 | `MovieSearchAPIServiceProtocol`, `MovieDetailAPIServiceProtocol` | `DefaultMovieRepositoryTests` | (is a fake, not a test) | Testing the repository's own logic without faking a whole `MovieRepository` |
-| `AssignmentTests/DefaultMovieRepositoryTests.swift` | Tests | `@MainActor struct` | Verifies cache-fallback + cancellation policy | Phase 3 | `DefaultMovieRepository`, both fake API services | — | (is the test) | Real `MovieCache` pointed at a temp directory, not mocked |
-| `Assignment/Services/Remote/RetryPolicy.swift` | Networking | `struct` | Bounded exponential-backoff retry decision, GET-only | Phase 4 | — | `RemoteService` | `RetryPolicyTests` (7) | Pure decision function, injectable sleep for fast tests |
-| `Assignment/Services/Remote/Interceptors.swift` (`AuthHeaderProviding`) | Networking | `protocol` | Credentials-provider seam for `AuthenticationInterceptor` | Phase 4 | — | `AuthenticationInterceptor`; implemented by `AuthManager` | `RemoteServiceTests.requestInterceptorHeadersReachTheFinalRequest` | Protocol replacing a direct singleton reference |
-| `AssignmentTests/Fakes/StubURLProtocol.swift` | Test doubles | `final class: URLProtocol` | Intercepts `URLSession` traffic for deterministic networking tests | Phase 4 | — | `RemoteServiceTests` | (is a fake, not a test) | Shared static state - requires `.serialized` in its consuming suite |
-| `Assignment/Storage/KeychainStore.swift` (`SecureKeyValueStoring`, `KeychainStore`) | Storage | `protocol` + `actor` | Keychain-backed secure key/value storage | Phase 5 | Security framework | `CredentialsStore` | Not testable in this environment (`errSecMissingEntitlement`) - see Phase 5 doc §10 | Actor for one async interface, not race protection; a discovered environment constraint fixed by a protocol boundary |
-| `Assignment/Storage/CredentialsStore.swift` | Storage | `actor` | Owns credential composition and the authenticated/not decision | Phase 5 | `SecureKeyValueStoring` | `AuthManager` | `CredentialsStoreTests` (5, via `InMemoryKeyValueStore`) | Protocol-backed dependency for testability |
-| `Assignment/Storage/WebDataClearingService.swift` | Storage | `@MainActor final class` | Consolidates WebKit/cookie/URL-cache clearing (was duplicated in two places) | Phase 5 | `WKWebsiteDataStore`, `HTTPCookieStorage`, `URLCache` | `AuthManager`, `LoginViewController` | None dedicated (exercised indirectly via `AuthManagerTests.logoutClearsCredentialsAndIsLoggedIn`) | `withCheckedContinuation` bridging a completion-handler API |
-| `Assignment/Views/Login/HotstarCredentialExtractor.swift` | Authentication | `enum` (pure functions) | Extracts a usable session token/cookie string from raw `HTTPCookie`s | Phase 5 | — | `LoginViewController` | `HotstarCredentialExtractorTests` (6) | Pure logic pulled out of a UIKit/WebKit callback specifically for testability |
-| `Assignment/Caching/MemoryCache.swift` | Caching | generic `actor` | TTL + LRU in-memory cache, hit/miss tracking | Phase 6 | — | `DefaultMovieRepository` | `MemoryCacheTests` (8) | Actor protecting genuine shared mutable state (unlike `KeychainStore`) |
-| `Assignment/Caching/DiskCache.swift` | Caching | generic `actor` | TTL disk cache, corrupt-file recovery | Phase 6 | — | `DefaultMovieRepository` (detail only) | `DiskCacheTests` (5) | `nonisolated(unsafe)` on a documented-safe SDK singleton reference |
-| `Assignment/Caching/InFlightRequestStore.swift` | Caching | generic `actor` | Request coalescing | Phase 6 | — | `DefaultMovieRepository` | `InFlightRequestStoreTests` (4) | The project's clearest concrete actor-reentrancy example |
-| `Assignment/Caching/CachePolicy.swift` | Caching | `enum` | Three distinct cache-access behaviors | Phase 6 | — | `MovieRepository`, `DefaultMovieRepository` | Exercised by all `DefaultMovieRepositoryTests` | Deliberately excludes a fourth, redundant case |
-| `Assignment/Caching/ImageLoader.swift` | Caching | `actor` | Fetches/decodes/caches images, reusing `MemoryCache`+`InFlightRequestStore` | Phase 8 | `MemoryCache`, `InFlightRequestStore` | `CachedAsyncImage` | `ImageLoaderTests` (5) | Decoding happens off the main actor "for free" |
-| `Assignment/Views/Components/CachedAsyncImage.swift` | UI | `struct: View` (generic) + `EnvironmentKey` | `AsyncImage`-shaped view backed by `ImageLoader` | Phase 8 | `ImageLoader` (environment-injected) | `MoviesListView`, `MovieDetailView` | Indirectly via `ImageLoaderTests` | Nested `Phase` type caused circular generic inference - moved to file scope |
+| `CineConnect/App/AppDependencyContainer.swift` | App/Composition | `final class` | Composition root; owns `AuthManager`, builds `AppCoordinator` | CC7 | `AuthManager` | `CineConnectApp` | `AppCoordinatorTests.dependencyContainerWiresACoordinator` | DI, composition root, default-argument actor isolation |
+| `CineConnect/Coordinators/Coordinator.swift` | App/Navigation | `protocol` | Common `makeView()` contract for coordinators | CC1 | — | `AppCoordinator`, `AuthenticationCoordinator`, `MoviesCoordinator` | Indirectly, via conforming types | `associatedtype`, `@MainActor` protocols |
+| `CineConnect/Coordinators/AppCoordinator.swift` | App/Navigation | `final class`, `@MainActor`, `ObservableObject` | Chooses `.auth`/`.movies` root, owns both child coordinators | CC1, refactored CC7 | `AuthManager`, `AuthenticationCoordinator`, `MoviesCoordinator` | `CineConnectApp` | `AppCoordinatorTests` (5 of 6) | State-driven root switching, `@Published private(set)` |
+| `CineConnect/Coordinators/AuthenticationCoordinator.swift` | Authentication | `final class`, `@MainActor` | Creates the login flow, forwards completion | CC1 as `AuthCoordinator`, renamed+refactored CC7 | `AuthManager`, `LoginView` | `AppCoordinator` | `AppCoordinatorTests.authCoordinatorCompletionBubblesToAppCoordinator` | Closures as a SwiftUI↔coordinator bridge |
+| `CineConnect/Coordinators/MoviesCoordinator.swift` | Movies/Navigation | `final class`, `@MainActor`, `ObservableObject` | Owns `NavigationPath`, resolves `MoviesRoute`, constructs feature ViewModels | CC1, refactored CC2/CC8 | `AuthManager`, `MoviesRoute`, `MovieSearchViewModel`, `MovieDetailViewModel`, API services | `AppCoordinator` | `MoviesCoordinatorTests`, `AppCoordinatorTests.moviesCoordinatorLogoutBubblesToAppCoordinator` | Typed routes, explicit `NavigationPath`, coordinator-as-factory |
+| `CineConnect/Coordinators/MoviesRoute.swift` | Movies/Navigation | `enum: Hashable` | Typed navigation destination for the movies feature | CC8 | `Movie` | `MoviesCoordinator`, `MoviesListView` | `MoviesCoordinatorTests.appendingDetailRouteGrowsPath` | `Hashable` routes vs. raw model as nav value |
+| `CineConnect/ViewModels/MovieSearchViewModel.swift` | Presentation | `final class`, `@MainActor`, `ObservableObject` | Search text pipeline, results/loading/error state | Pre-existing, injection added CC8 | `MovieSearchAPIServiceProtocol` | `MoviesListView`, `MoviesCoordinator` | None dedicated yet (Phase 3 gap) | Combine debounce, `Task` cancel-on-new-query, stale-result guard |
+| `CineConnect/ViewModels/MovieDetailViewModel.swift` | Presentation | `final class`, `@MainActor`, `ObservableObject` | Detail load/loading/error state | Pre-existing, injection added CC8 | `MovieDetailAPIServiceProtocol` | `MovieDetailView`, `MoviesCoordinator` | None dedicated yet (Phase 3 gap) | `Task` cancellation via `.task(id:)`, `CancellationError` handling |
+| `CineConnect/Views/Login/LoginViewController.swift` | Authentication/UIKit | `class: UIViewController` | WebKit login flow, credential extraction | Pre-existing, injected-`AuthManager` + pure-extraction rework Phase 5 | `AuthManager` (injected), `HotstarCredentialExtractor`, `WebDataClearingService` | `LoginView` | `HotstarCredentialExtractorTests` (indirectly, its extracted logic) | SwiftUI↔UIKit bridge, `WKNavigationDelegate`, no more `.shared` reference |
+| `CineConnect/Views/Login/LoginView.swift` | Authentication/UIKit | `struct: UIViewControllerRepresentable` | Bridges `LoginViewController` into SwiftUI | Pre-existing, threads `authManager` Phase 5 | `LoginViewController`, `AuthManager` | `AuthenticationCoordinator` | None | `makeUIViewController`/`updateUIViewController`, closure-based event bridge |
+| `CineConnectTests/AppCoordinatorTests.swift` | Tests | `@Suite(.serialized) struct` | Coordinator routing tests | CC7 | `AppCoordinator`, `AuthManager.shared` | — | (is the test) | Integration test against a real singleton; `.serialized` to prevent races |
+| `CineConnectTests/MoviesCoordinatorTests.swift` | Tests | `struct` | Navigation path tests | CC8 | `MoviesCoordinator`, `MoviesRoute` | — | (is the test) | `NavigationPath.count`/`isEmpty` as the only inspectable state |
+| `CineConnect/Domain/MovieRepository.swift` | Domain | `protocol` | Data-access boundary for the movies feature | Phase 3 | — | `DefaultMovieRepository`, both use cases | `DefaultMovieRepositoryTests` (via the concrete type) | Protocol as a substitution boundary, no `Sendable` yet (deliberately) |
+| `CineConnect/Domain/UseCases/SearchMoviesUseCase.swift` | Domain | `struct` (`callAsFunction`) | Query normalization + "is there anything to search" decision | Phase 3 | `MovieRepository` | `MoviesCoordinator`, `MovieSearchViewModel` | `SearchMoviesUseCaseTests` (5) | Use case owning real application policy; `nil` as a third outcome distinct from empty/error |
+| `CineConnect/Domain/UseCases/GetMovieDetailUseCase.swift` | Domain | `struct` (`callAsFunction`) | Forwards to `MovieRepository.movieDetail(slug:)` | Phase 3 | `MovieRepository` | `MoviesCoordinator`, `MovieDetailViewModel` | `GetMovieDetailUseCaseTests` (2) | Honest example of a use case that's currently a pass-through |
+| `CineConnect/Data/DefaultMovieRepository.swift` | Data | `final class` | Coordinates remote data source + cache-fallback policy | Phase 3 | `MovieSearchAPIServiceProtocol`, `MovieDetailAPIServiceProtocol`, `MovieCache` | Both use cases (via `MovieRepository`) | `DefaultMovieRepositoryTests` (5) | Repository-owned cache policy, cancellation-vs-failure distinction |
+| `CineConnect/Data/DTOs/MovieSearchDTO.swift`, `MovieDetailDTO.swift` | Data | `struct: Decodable` | Decode Hotstar's response shape | Pre-existing, moved Phase 3 | `Foundation` | `MovieSearchMapper`/`MovieDetailMapper` extensions, `MovieSearchAPIService`/`MovieDetailAPIService` | `MovieSearchMapperTests`, `MovieDetailMapperTests` | DTOs kept out of Domain entirely |
+| `CineConnect/Data/Mappers/MovieSearchMapper.swift`, `MovieDetailMapper.swift` | Data | `extension` on the DTOs | Explicit DTO→domain mapping | Pre-existing logic, split into own files Phase 3 | `Movie`/`MovieDetail`, the DTOs | `MovieSearchAPIService`/`MovieDetailAPIService` | `MovieSearchMapperTests` (5), `MovieDetailMapperTests` (4) | Explicit mapping, missing-field/invalid-response handling |
+| `CineConnectTests/Fakes/FakeMovieRepository.swift` | Test doubles | `final class` | Configurable fake `MovieRepository` | Phase 3 | `MovieRepository` | Use-case and ViewModel tests | (is a fake, not a test) | Result-based configuration, per-query delay for race tests |
+| `CineConnectTests/Fakes/FakeMovieAPIServices.swift` | Test doubles | `final class` (x2) | Configurable fakes for the remote-data-source protocols | Phase 3 | `MovieSearchAPIServiceProtocol`, `MovieDetailAPIServiceProtocol` | `DefaultMovieRepositoryTests` | (is a fake, not a test) | Testing the repository's own logic without faking a whole `MovieRepository` |
+| `CineConnectTests/DefaultMovieRepositoryTests.swift` | Tests | `@MainActor struct` | Verifies cache-fallback + cancellation policy | Phase 3 | `DefaultMovieRepository`, both fake API services | — | (is the test) | Real `MovieCache` pointed at a temp directory, not mocked |
+| `CineConnect/Services/Remote/RetryPolicy.swift` | Networking | `struct` | Bounded exponential-backoff retry decision, GET-only | Phase 4 | — | `RemoteService` | `RetryPolicyTests` (7) | Pure decision function, injectable sleep for fast tests |
+| `CineConnect/Services/Remote/Interceptors.swift` (`AuthHeaderProviding`) | Networking | `protocol` | Credentials-provider seam for `AuthenticationInterceptor` | Phase 4 | — | `AuthenticationInterceptor`; implemented by `AuthManager` | `RemoteServiceTests.requestInterceptorHeadersReachTheFinalRequest` | Protocol replacing a direct singleton reference |
+| `CineConnectTests/Fakes/StubURLProtocol.swift` | Test doubles | `final class: URLProtocol` | Intercepts `URLSession` traffic for deterministic networking tests | Phase 4 | — | `RemoteServiceTests` | (is a fake, not a test) | Shared static state - requires `.serialized` in its consuming suite |
+| `CineConnect/Storage/KeychainStore.swift` (`SecureKeyValueStoring`, `KeychainStore`) | Storage | `protocol` + `actor` | Keychain-backed secure key/value storage | Phase 5 | Security framework | `CredentialsStore` | Not testable in this environment (`errSecMissingEntitlement`) - see Phase 5 doc §10 | Actor for one async interface, not race protection; a discovered environment constraint fixed by a protocol boundary |
+| `CineConnect/Storage/CredentialsStore.swift` | Storage | `actor` | Owns credential composition and the authenticated/not decision | Phase 5 | `SecureKeyValueStoring` | `AuthManager` | `CredentialsStoreTests` (5, via `InMemoryKeyValueStore`) | Protocol-backed dependency for testability |
+| `CineConnect/Storage/WebDataClearingService.swift` | Storage | `@MainActor final class` | Consolidates WebKit/cookie/URL-cache clearing (was duplicated in two places) | Phase 5 | `WKWebsiteDataStore`, `HTTPCookieStorage`, `URLCache` | `AuthManager`, `LoginViewController` | None dedicated (exercised indirectly via `AuthManagerTests.logoutClearsCredentialsAndIsLoggedIn`) | `withCheckedContinuation` bridging a completion-handler API |
+| `CineConnect/Views/Login/HotstarCredentialExtractor.swift` | Authentication | `enum` (pure functions) | Extracts a usable session token/cookie string from raw `HTTPCookie`s | Phase 5 | — | `LoginViewController` | `HotstarCredentialExtractorTests` (6) | Pure logic pulled out of a UIKit/WebKit callback specifically for testability |
+| `CineConnect/Caching/MemoryCache.swift` | Caching | generic `actor` | TTL + LRU in-memory cache, hit/miss tracking | Phase 6 | — | `DefaultMovieRepository` | `MemoryCacheTests` (8) | Actor protecting genuine shared mutable state (unlike `KeychainStore`) |
+| `CineConnect/Caching/DiskCache.swift` | Caching | generic `actor` | TTL disk cache, corrupt-file recovery | Phase 6 | — | `DefaultMovieRepository` (detail only) | `DiskCacheTests` (5) | `nonisolated(unsafe)` on a documented-safe SDK singleton reference |
+| `CineConnect/Caching/InFlightRequestStore.swift` | Caching | generic `actor` | Request coalescing | Phase 6 | — | `DefaultMovieRepository` | `InFlightRequestStoreTests` (4) | The project's clearest concrete actor-reentrancy example |
+| `CineConnect/Caching/CachePolicy.swift` | Caching | `enum` | Three distinct cache-access behaviors | Phase 6 | — | `MovieRepository`, `DefaultMovieRepository` | Exercised by all `DefaultMovieRepositoryTests` | Deliberately excludes a fourth, redundant case |
+| `CineConnect/Caching/ImageLoader.swift` | Caching | `actor` | Fetches/decodes/caches images, reusing `MemoryCache`+`InFlightRequestStore` | Phase 8 | `MemoryCache`, `InFlightRequestStore` | `CachedAsyncImage` | `ImageLoaderTests` (5) | Decoding happens off the main actor "for free" |
+| `CineConnect/Views/Components/CachedAsyncImage.swift` | UI | `struct: View` (generic) + `EnvironmentKey` | `AsyncImage`-shaped view backed by `ImageLoader` | Phase 8 | `ImageLoader` (environment-injected) | `MoviesListView`, `MovieDetailView` | Indirectly via `ImageLoaderTests` | Nested `Phase` type caused circular generic inference - moved to file scope |
 
 ## Detailed entries
 
@@ -56,7 +56,7 @@ that document. Full per-file entries in this file's own format are kept for
 Phase 1/2's files below; future phases will follow whichever placement
 avoids duplicating the same explanation twice.
 
-## `Assignment/App/AppDependencyContainer.swift`
+## `CineConnect/App/AppDependencyContainer.swift`
 
 ### Why this file exists
 Before this, every coordinator defaulted its `authManager` parameter to
@@ -79,16 +79,16 @@ value semantics wouldn't fit. `@MainActor` because coordinator construction
 touches `@MainActor`-isolated types.
 
 ### Created by
-`AssignmentApp.init()`.
+`CineConnectApp.init()`.
 
 ### Dependencies
 `AuthManager` (still the pre-refactor singleton type).
 
 ### Used by
-`AssignmentApp` (the only call site so far).
+`CineConnectApp` (the only call site so far).
 
 ### Runtime flow
-1. `AssignmentApp.init()` runs.
+1. `CineConnectApp.init()` runs.
 2. `AppDependencyContainer()` is constructed with `authManager: nil`.
 3. Its `init` body resolves `authManager ?? AuthManager.shared` (see
    Isolation, below, for why this happens in the body and not a default
@@ -138,14 +138,14 @@ future swap to an injectable, protocol-backed credentials store only
 touches this one container, not four coordinator files.
 
 ### What would break if this file disappeared?
-`AssignmentApp` would have to go back to constructing `AppCoordinator`
+`CineConnectApp` would have to go back to constructing `AppCoordinator`
 (and transitively `AuthenticationCoordinator`/`MoviesCoordinator`) itself,
 and since those types no longer have default parameters, the app literally
 wouldn't compile without *some* single place resolving `AuthManager`.
 
 ---
 
-## `Assignment/Coordinators/AppCoordinator.swift`
+## `CineConnect/Coordinators/AppCoordinator.swift`
 
 ### Why this file exists
 Something has to decide, at the top of the app, whether the user sees the
@@ -172,13 +172,13 @@ across the `@StateObject` it's held in.
 `AuthManager`, `AuthenticationCoordinator`, `MoviesCoordinator`.
 
 ### Used by
-`AssignmentApp` (via `makeRootView()` and `start()`).
+`CineConnectApp` (via `makeRootView()` and `start()`).
 
 ### Runtime flow
 1. `init(authManager:)` sets `root` from `authManager.isAuthenticated()`.
 2. Builds `authCoordinator`/`moviesCoordinator`, wiring `onAuthenticated` →
    `showMovies()` and `onLogout` → `showAuth()`.
-3. `AssignmentApp` calls `start()` in `.onAppear`, which re-derives `root`
+3. `CineConnectApp` calls `start()` in `.onAppear`, which re-derives `root`
    (currently redundant with the init-time computation — see the Counter-
    question below).
 4. `makeRootView()` switches on `root` to produce the SwiftUI view tree.
@@ -219,12 +219,12 @@ token expiring mid-session wouldn't flip `root` without an explicit
 
 ### What would break if this file disappeared?
 There would be no single owner deciding which SwiftUI root to show —
-`AssignmentApp` would have to embed that decision itself, re-introducing
+`CineConnectApp` would have to embed that decision itself, re-introducing
 exactly the coupling this coordinator exists to avoid.
 
 ---
 
-## `Assignment/Coordinators/AuthenticationCoordinator.swift`
+## `CineConnect/Coordinators/AuthenticationCoordinator.swift`
 
 ### Why this file exists
 To isolate "how do we get from not-logged-in to logged-in" from
@@ -298,7 +298,7 @@ login flow completes."
 
 ---
 
-## `Assignment/Coordinators/MoviesCoordinator.swift`
+## `CineConnect/Coordinators/MoviesCoordinator.swift`
 
 ### Why this file exists
 Search and detail navigation needs one owner for the `NavigationPath` and
@@ -395,7 +395,7 @@ for this feature specifically.
 
 ---
 
-## `Assignment/Coordinators/MoviesRoute.swift`
+## `CineConnect/Coordinators/MoviesRoute.swift`
 
 ### Why this file exists
 Before Phase 2, `.navigationDestination(for: Movie.self)` used the domain
@@ -474,7 +474,7 @@ reinvented under time pressure.
 
 ---
 
-## `Assignment/ViewModels/MovieSearchViewModel.swift`
+## `CineConnect/ViewModels/MovieSearchViewModel.swift`
 
 ### Why this file exists
 Owns the search screen's presentation state and its debounced search
@@ -556,7 +556,7 @@ No search feature at all — this is where the entire search behavior lives.
 
 ---
 
-## `Assignment/ViewModels/MovieDetailViewModel.swift`
+## `CineConnect/ViewModels/MovieDetailViewModel.swift`
 
 ### Why this file exists
 Owns the detail screen's load/loading/error state, decoupled from the View.
@@ -626,7 +626,7 @@ No detail screen data loading at all.
 
 ---
 
-## `Assignment/Views/Login/LoginViewController.swift`
+## `CineConnect/Views/Login/LoginViewController.swift`
 
 ### Why this file exists
 Hotstar's login has no public API — it requires driving an actual web
@@ -711,7 +711,7 @@ No way to log in at all — this is the entire authentication mechanism.
 
 ---
 
-## `Assignment/Views/Login/LoginView.swift`
+## `CineConnect/Views/Login/LoginView.swift`
 
 ### Why this file exists
 `UIViewControllerRepresentable` conformance is the only way to host a
@@ -774,7 +774,7 @@ in SwiftUI at all.
 
 ---
 
-## `AssignmentTests/AppCoordinatorTests.swift`
+## `CineConnectTests/AppCoordinatorTests.swift`
 
 ### Why this file exists
 Phase 1 introduced coordinator dependency injection; this is what verifies
@@ -837,7 +837,7 @@ coverage.
 
 ---
 
-## `AssignmentTests/MoviesCoordinatorTests.swift`
+## `CineConnectTests/MoviesCoordinatorTests.swift`
 
 ### Why this file exists
 Phase 2 added real navigation-path state (`@Published var path`); this

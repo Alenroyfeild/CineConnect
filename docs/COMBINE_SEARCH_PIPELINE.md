@@ -1,7 +1,7 @@
 # The Search Debounce Pipeline
 
 One Combine pipeline exists in CineConnect:
-[`MovieSearchViewModel.setupSearchObserver()`](../Assignment/ViewModels/MovieSearchViewModel.swift).
+[`MovieSearchViewModel.setupSearchObserver()`](../CineConnect/ViewModels/MovieSearchViewModel.swift).
 This document walks through it operator by operator.
 
 ```swift
@@ -63,7 +63,7 @@ Waits for `debounceInterval` (500ms in production, injected as low as
 silence before letting a value through. Six keystrokes typed within that
 window collapse into exactly one emission: the final value. This is what
 makes `rapidTypingOnlyTriggersOneSearchAfterTypingStops`
-(`AssignmentTests/MovieSearchViewModelTests.swift`) pass.
+(`CineConnectTests/MovieSearchViewModelTests.swift`) pass.
 
 ## Sink/subscription: the empty-query branch
 

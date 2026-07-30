@@ -38,25 +38,25 @@ established for `AuthManager`.
 
 ## 4. Files introduced
 
-- `Assignment/Services/Remote/RetryPolicy.swift`
-- Tests: `AssignmentTests/RemoteServiceTests.swift`,
-  `AssignmentTests/RetryPolicyTests.swift`, `AssignmentTests/RemoteErrorTests.swift`,
-  `AssignmentTests/Fakes/StubURLProtocol.swift`
+- `CineConnect/Services/Remote/RetryPolicy.swift`
+- Tests: `CineConnectTests/RemoteServiceTests.swift`,
+  `CineConnectTests/RetryPolicyTests.swift`, `CineConnectTests/RemoteErrorTests.swift`,
+  `CineConnectTests/Fakes/StubURLProtocol.swift`
 
 ## 5. Files modified
 
-- `Assignment/Services/Remote/Request.swift` (`isSuccess` fix; removed the two dead private methods; `HTTPMethod: Equatable`)
-- `Assignment/Services/Remote/RemoteError.swift` (`.server(RemoteErrorResponse)` case; `.from(_:)` now passes `RemoteError` through unchanged; `RemoteErrorResponse: Codable`)
-- `Assignment/Services/Remote/RemoteService.swift` (retry loop, structured-error decoding, no more `.shared` static)
-- `Assignment/Services/Remote/Interceptors.swift` (`AuthHeaderProviding` protocol; `AuthenticationInterceptor` takes an injected provider)
-- `Assignment/Services/BaseAPIService.swift` (`remoteService` no longer defaults to `.shared`)
-- `Assignment/Services/MovieSearchAPIService.swift` (double-encoding removed; force-unwrapped `URL(string:)!` removed - passes the string directly via `URLConvertable`; simplified `catch` using `RemoteError.from`)
-- `Assignment/Services/MovieDetailAPIService.swift` (same `catch` simplification)
-- `Assignment/Utils/AuthManager.swift` (`: AuthHeaderProviding` conformance)
-- `Assignment/App/AppDependencyContainer.swift` (builds the one `RemoteService`, wires the interceptor)
-- `Assignment/Coordinators/AppCoordinator.swift`, `MoviesCoordinator.swift` (thread `remoteService` through, no default)
-- `Assignment/Views/MoviesListView.swift`, `MovieDetailView.swift` (preview call sites updated)
-- `AssignmentTests/AppCoordinatorTests.swift`, `MoviesCoordinatorTests.swift` (updated call sites)
+- `CineConnect/Services/Remote/Request.swift` (`isSuccess` fix; removed the two dead private methods; `HTTPMethod: Equatable`)
+- `CineConnect/Services/Remote/RemoteError.swift` (`.server(RemoteErrorResponse)` case; `.from(_:)` now passes `RemoteError` through unchanged; `RemoteErrorResponse: Codable`)
+- `CineConnect/Services/Remote/RemoteService.swift` (retry loop, structured-error decoding, no more `.shared` static)
+- `CineConnect/Services/Remote/Interceptors.swift` (`AuthHeaderProviding` protocol; `AuthenticationInterceptor` takes an injected provider)
+- `CineConnect/Services/BaseAPIService.swift` (`remoteService` no longer defaults to `.shared`)
+- `CineConnect/Services/MovieSearchAPIService.swift` (double-encoding removed; force-unwrapped `URL(string:)!` removed - passes the string directly via `URLConvertable`; simplified `catch` using `RemoteError.from`)
+- `CineConnect/Services/MovieDetailAPIService.swift` (same `catch` simplification)
+- `CineConnect/Utils/AuthManager.swift` (`: AuthHeaderProviding` conformance)
+- `CineConnect/App/AppDependencyContainer.swift` (builds the one `RemoteService`, wires the interceptor)
+- `CineConnect/Coordinators/AppCoordinator.swift`, `MoviesCoordinator.swift` (thread `remoteService` through, no default)
+- `CineConnect/Views/MoviesListView.swift`, `MovieDetailView.swift` (preview call sites updated)
+- `CineConnectTests/AppCoordinatorTests.swift`, `MoviesCoordinatorTests.swift` (updated call sites)
 
 ## 6. Files removed
 
@@ -124,7 +124,7 @@ level), `RetryPolicyTests` (7, policy decisions in isolation),
 
 ## 9. Code excerpts
 
-**Exact production code** (`Assignment/Services/Remote/Request.swift`, the fix):
+**Exact production code** (`CineConnect/Services/Remote/Request.swift`, the fix):
 
 ```swift
 extension HTTPURLResponse {
@@ -132,7 +132,7 @@ extension HTTPURLResponse {
 }
 ```
 
-**Exact production code** (`Assignment/Services/Remote/RemoteService.swift`,
+**Exact production code** (`CineConnect/Services/Remote/RemoteService.swift`,
 the retry loop):
 
 ```swift
@@ -157,7 +157,7 @@ func execute<T: Decodable>(request: Remote.Request) async throws -> T {
 }
 ```
 
-**Exact production code** (`Assignment/Services/Remote/Interceptors.swift`,
+**Exact production code** (`CineConnect/Services/Remote/Interceptors.swift`,
 the injected seam):
 
 ```swift
@@ -176,7 +176,7 @@ final class AuthenticationInterceptor: RequestInterceptor {
 
 ```bash
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
-  -project Assignment.xcodeproj -scheme Assignment \
+  -project CineConnect.xcodeproj -scheme CineConnect \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
   -configuration Debug CODE_SIGNING_ALLOWED=NO clean test
 ```
@@ -271,8 +271,8 @@ separate commits/phases would fragment one coherent change for no reader
 benefit.
 
 **Code evidence:**
-- `Assignment/Services/Remote/Request.swift` (`isSuccess`)
-- `Assignment/Services/MovieSearchAPIService.swift` (encoding fix)
+- `CineConnect/Services/Remote/Request.swift` (`isSuccess`)
+- `CineConnect/Services/MovieSearchAPIService.swift` (encoding fix)
 - Tests: `RemoteServiceTests.statusCode201And204AreTreatedAsSuccess`, `.queryParametersAreEncodedExactlyOnce`
 
 **Follow-up question:** How did you verify the double-encoding fix actually

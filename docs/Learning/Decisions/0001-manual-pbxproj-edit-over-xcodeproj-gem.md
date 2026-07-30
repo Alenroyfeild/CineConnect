@@ -2,7 +2,7 @@
 
 **Status:** Accepted (Phase 0/1, commit `ae220c9`).
 
-**Context:** Needed to add `AssignmentTests`/`AssignmentUITests` native
+**Context:** Needed to add `CineConnectTests`/`CineConnectUITests` native
 targets with no Xcode GUI available in this environment. The project uses
 `objectVersion = 77` (Xcode 16+'s `PBXFileSystemSynchronizedRootGroup`
 format) — a recent enough format that CocoaPods' `xcodeproj` Ruby gem's

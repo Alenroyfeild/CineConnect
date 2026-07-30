@@ -10,9 +10,9 @@ exactly how that bridge works, using the real files involved.
 
 | File | Direction | Role |
 |---|---|---|
-| [`Assignment/Views/Login/LoginView.swift`](../Assignment/Views/Login/LoginView.swift) | SwiftUI → UIKit | `UIViewControllerRepresentable` that hosts `LoginViewController` |
-| [`Assignment/Views/Login/LoginViewController.swift`](../Assignment/Views/Login/LoginViewController.swift) | UIKit, owns WebKit | The actual login screen: `WKWebView`, cookie extraction, calling `AuthManager` |
-| [`Assignment/Coordinators/AuthenticationCoordinator.swift`](../Assignment/Coordinators/AuthenticationCoordinator.swift) | SwiftUI coordination | Constructs `LoginView`, reacts to its completion event |
+| [`CineConnect/Views/Login/LoginView.swift`](../CineConnect/Views/Login/LoginView.swift) | SwiftUI → UIKit | `UIViewControllerRepresentable` that hosts `LoginViewController` |
+| [`CineConnect/Views/Login/LoginViewController.swift`](../CineConnect/Views/Login/LoginViewController.swift) | UIKit, owns WebKit | The actual login screen: `WKWebView`, cookie extraction, calling `AuthManager` |
+| [`CineConnect/Coordinators/AuthenticationCoordinator.swift`](../CineConnect/Coordinators/AuthenticationCoordinator.swift) | SwiftUI coordination | Constructs `LoginView`, reacts to its completion event |
 
 ## SwiftUI creating UIKit
 
@@ -148,7 +148,7 @@ any other screen. This matters for two reasons:
 
 1. **Testability**: `HotstarCredentialExtractor`'s logic is unit-tested
    with zero UIKit/WebKit/navigation involvement (see
-   `AssignmentTests/HotstarCredentialExtractorTests.swift`) precisely
+   `CineConnectTests/HotstarCredentialExtractorTests.swift`) precisely
    because credential extraction and "what happens next" are separate
    concerns.
 2. **Single navigation owner**: `AppCoordinator` is the only type that

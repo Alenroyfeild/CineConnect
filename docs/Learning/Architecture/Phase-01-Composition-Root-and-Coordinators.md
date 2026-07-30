@@ -27,19 +27,19 @@ target exists to verify it.
 
 ## 4. Files introduced
 
-- `Assignment/App/AppDependencyContainer.swift`
-- `AssignmentTests/AssignmentTests.swift`, `AssignmentTests/AppCoordinatorTests.swift`
-- `AssignmentUITests/AssignmentUITests.swift`
-- Two new native targets in `Assignment.xcodeproj/project.pbxproj`
+- `CineConnect/App/AppDependencyContainer.swift`
+- `CineConnectTests/CineConnectTests.swift`, `CineConnectTests/AppCoordinatorTests.swift`
+- `CineConnectUITests/CineConnectUITests.swift`
+- Two new native targets in `CineConnect.xcodeproj/project.pbxproj`
 
 ## 5. Files modified
 
-- `Assignment/AssignmentApp.swift` — builds the container, gets the
+- `CineConnect/CineConnectApp.swift` — builds the container, gets the
   coordinator from it.
-- `Assignment/Coordinators/AppCoordinator.swift` — `init(authManager:)` no
+- `CineConnect/Coordinators/AppCoordinator.swift` — `init(authManager:)` no
   longer defaults.
-- `Assignment/Coordinators/MoviesCoordinator.swift` — same.
-- `Assignment/Coordinators/AuthCoordinator.swift` → renamed
+- `CineConnect/Coordinators/MoviesCoordinator.swift` — same.
+- `CineConnect/Coordinators/AuthCoordinator.swift` → renamed
   `AuthenticationCoordinator.swift`, same default removed.
 
 ## 6. Files removed
@@ -49,7 +49,7 @@ None.
 ## 7. Runtime flow before
 
 ```
-AssignmentApp.body
+CineConnectApp.body
   → AppCoordinator()                              // self-constructs
       → AuthCoordinator(authManager: .shared)      // reaches singleton itself
       → MoviesCoordinator(authManager: .shared)    // reaches singleton itself
@@ -58,7 +58,7 @@ AssignmentApp.body
 ## 8. Runtime flow after
 
 ```
-AssignmentApp.init()
+CineConnectApp.init()
   → AppDependencyContainer(authManager: nil)
       → resolves authManager ?? AuthManager.shared   // ONE place
   → container.makeAppCoordinator()
@@ -70,7 +70,7 @@ AssignmentApp.init()
 
 Each numbered step, with file/type/method/context:
 
-1. **File:** `AssignmentApp.swift` · **Type:** `AssignmentApp` · **Method:**
+1. **File:** `CineConnectApp.swift` · **Type:** `CineConnectApp` · **Method:**
    `init()` · **Context:** SwiftUI app launch, main thread.
 2. **File:** `AppDependencyContainer.swift` · **Type:** `AppDependencyContainer`
    · **Method:** `init(authManager:)` · **Context:** `@MainActor`. No
@@ -80,14 +80,14 @@ Each numbered step, with file/type/method/context:
 4. **File:** `AppCoordinator.swift` · **Method:** `init(authManager:)` ·
    `@MainActor`. Reads `authManager.isAuthenticated()` synchronously
    (`UserDefaults` lookup, no suspension).
-5. **File:** `AssignmentApp.swift` · the result is handed to
+5. **File:** `CineConnectApp.swift` · the result is handed to
    `StateObject(wrappedValue:)`.
 
 **Test covering this flow:** `AppCoordinatorTests.dependencyContainerWiresACoordinator`.
 
 ## 9. Code excerpts
 
-**Exact production code** (`Assignment/App/AppDependencyContainer.swift`):
+**Exact production code** (`CineConnect/App/AppDependencyContainer.swift`):
 
 ```swift
 @MainActor
@@ -104,7 +104,7 @@ final class AppDependencyContainer {
 }
 ```
 
-**Exact production code** (`Assignment/Coordinators/AppCoordinator.swift`,
+**Exact production code** (`CineConnect/Coordinators/AppCoordinator.swift`,
 the changed initializer only):
 
 ```swift
@@ -121,7 +121,7 @@ init(authManager: AuthManager) {
 
 ```bash
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
-  -project Assignment.xcodeproj -scheme Assignment \
+  -project CineConnect.xcodeproj -scheme CineConnect \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
   -configuration Debug CODE_SIGNING_ALLOWED=NO clean test
 ```
@@ -179,8 +179,8 @@ dependency explicitly, so there's exactly one place to look when the
 singleton eventually gets replaced (Phase 5).
 
 **Code evidence:**
-- `Assignment/App/AppDependencyContainer.swift`
-- `Assignment/Coordinators/AppCoordinator.swift:16-21` (required parameter, no default)
+- `CineConnect/App/AppDependencyContainer.swift`
+- `CineConnect/Coordinators/AppCoordinator.swift:16-21` (required parameter, no default)
 - Test: `AppCoordinatorTests.dependencyContainerWiresACoordinator`
 
 **Follow-up question:** Doesn't `AppDependencyContainer` itself still
@@ -226,7 +226,7 @@ Phase 5 will use to swap `AuthManager` for something actually mockable.
 ## 16. Counter-questions
 
 - "If `AppDependencyContainer` disappeared, would the app still compile?"
-  No — `AssignmentApp` has nothing else that resolves `AuthManager` for the
+  No — `CineConnectApp` has nothing else that resolves `AuthManager` for the
   now-parameter-required coordinators.
 - "Why is the container a class and not a struct?" See `FILE_INDEX.md`'s
   Type Choice section for `AppDependencyContainer.swift`.
@@ -323,7 +323,7 @@ final class AppCoordinator: ObservableObject {
 ```
 
 - Who now creates the coordinator: `AppDependencyContainer`, via
-  `AssignmentApp.init()`.
+  `CineConnectApp.init()`.
 - How dependencies are supplied: as required initializer parameters, all
   the way down.
 - How previews/tests construct it: `AppCoordinatorTests` passes

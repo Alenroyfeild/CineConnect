@@ -4,7 +4,7 @@ Status: **Implemented and verified**.
 
 ## 1. Previous implementation
 
-`MovieCache` (`Assignment/Services/Cache/MovieCache.swift`) was a plain
+`MovieCache` (`CineConnect/Services/Cache/MovieCache.swift`) was a plain
 `class`, not an actor: one flat disk cache, no TTL, no eviction, no
 in-flight request deduplication, consulted only as a fallback when the
 network call failed (Phase 3's `DefaultMovieRepository` orchestrated this).
@@ -36,26 +36,26 @@ per coordinator lifetime, not per screen.
 
 ## 4. Files introduced
 
-- `Assignment/Caching/CachePolicy.swift`
-- `Assignment/Caching/MemoryCache.swift`
-- `Assignment/Caching/DiskCache.swift`
-- `Assignment/Caching/InFlightRequestStore.swift`
-- Tests: `AssignmentTests/MemoryCacheTests.swift`, `DiskCacheTests.swift`,
-  `InFlightRequestStoreTests.swift`, `AssignmentTests/Fakes/MutableClock.swift`
+- `CineConnect/Caching/CachePolicy.swift`
+- `CineConnect/Caching/MemoryCache.swift`
+- `CineConnect/Caching/DiskCache.swift`
+- `CineConnect/Caching/InFlightRequestStore.swift`
+- Tests: `CineConnectTests/MemoryCacheTests.swift`, `DiskCacheTests.swift`,
+  `InFlightRequestStoreTests.swift`, `CineConnectTests/Fakes/MutableClock.swift`
 
 ## 5. Files modified
 
-- `Assignment/Domain/MovieRepository.swift` (`policy` parameter, default-implementing extension, `clearCaches()`)
-- `Assignment/Data/DefaultMovieRepository.swift` (rewritten around the L0-L2 cache stack)
-- `Assignment/Domain/Models/Movie.swift`, `MovieDetail.swift` (`Sendable`, `nonisolated` - see §10)
-- `Assignment/Services/MovieSearchAPIService.swift`, `MovieDetailAPIService.swift` (protocols now `Sendable`)
-- `Assignment/Coordinators/MoviesCoordinator.swift` (one repository instance per coordinator; `performLogout()` clears caches)
-- `AssignmentTests/Fakes/FakeMovieRepository.swift`, `FakeMovieAPIServices.swift` (updated for the new protocol shape)
-- `AssignmentTests/DefaultMovieRepositoryTests.swift` (rewritten for the new architecture)
+- `CineConnect/Domain/MovieRepository.swift` (`policy` parameter, default-implementing extension, `clearCaches()`)
+- `CineConnect/Data/DefaultMovieRepository.swift` (rewritten around the L0-L2 cache stack)
+- `CineConnect/Domain/Models/Movie.swift`, `MovieDetail.swift` (`Sendable`, `nonisolated` - see §10)
+- `CineConnect/Services/MovieSearchAPIService.swift`, `MovieDetailAPIService.swift` (protocols now `Sendable`)
+- `CineConnect/Coordinators/MoviesCoordinator.swift` (one repository instance per coordinator; `performLogout()` clears caches)
+- `CineConnectTests/Fakes/FakeMovieRepository.swift`, `FakeMovieAPIServices.swift` (updated for the new protocol shape)
+- `CineConnectTests/DefaultMovieRepositoryTests.swift` (rewritten for the new architecture)
 
 ## 6. Files removed
 
-`Assignment/Services/Cache/MovieCache.swift` (fully replaced).
+`CineConnect/Services/Cache/MovieCache.swift` (fully replaced).
 
 ## 7. Runtime flow before
 
@@ -112,7 +112,7 @@ Numbered, with file/type/method/context:
 
 ## 9. Code excerpts
 
-**Exact production code** (`Assignment/Caching/InFlightRequestStore.swift`,
+**Exact production code** (`CineConnect/Caching/InFlightRequestStore.swift`,
 the coalescing logic itself):
 
 ```swift
@@ -127,7 +127,7 @@ func value(forKey key: Key, operation: @Sendable @escaping () async throws -> Va
 }
 ```
 
-**Exact production code** (`Assignment/Caching/CachePolicy.swift`):
+**Exact production code** (`CineConnect/Caching/CachePolicy.swift`):
 
 ```swift
 enum CachePolicy: Sendable {
@@ -141,7 +141,7 @@ enum CachePolicy: Sendable {
 
 ```bash
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
-  -project Assignment.xcodeproj -scheme Assignment \
+  -project CineConnect.xcodeproj -scheme CineConnect \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
   -configuration Debug CODE_SIGNING_ALLOWED=NO clean test
 ```
@@ -275,7 +275,7 @@ there's no `await` between the check and the register - which this
 implementation deliberately has none of.
 
 **Code evidence:**
-- `Assignment/Caching/InFlightRequestStore.swift`
+- `CineConnect/Caching/InFlightRequestStore.swift`
 - Test: `InFlightRequestStoreTests.tenSimultaneousCallsForTheSameKeyShareOneOperationCall`
 
 **Follow-up question:** What would break if you inserted an `await`
@@ -319,8 +319,8 @@ buys little. A movie's detail page is comparatively stable and more
 expensive to lose - worth surviving a memory warning or a relaunch.
 
 **Code evidence:**
-- `Assignment/Domain/MovieRepository.swift`'s doc comment (states this reasoning directly)
-- `Assignment/Data/DefaultMovieRepository.swift` - `searchMemoryCache` only vs. `detailMemoryCache` + `detailDiskCache`
+- `CineConnect/Domain/MovieRepository.swift`'s doc comment (states this reasoning directly)
+- `CineConnect/Data/DefaultMovieRepository.swift` - `searchMemoryCache` only vs. `detailMemoryCache` + `detailDiskCache`
 
 **Follow-up question:** Could this cause a visible inconsistency - e.g.,
 a cached detail screen surviving a relaunch while its originating search

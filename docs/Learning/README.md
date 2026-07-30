@@ -53,11 +53,11 @@ next; its doc will appear here once that phase actually lands.
 
 ## Code-reading order
 
-1. [`Assignment/AssignmentApp.swift`](../../Assignment/AssignmentApp.swift) — entry point.
-2. [`Assignment/App/AppDependencyContainer.swift`](../../Assignment/App/AppDependencyContainer.swift) — composition root.
-3. [`Assignment/Coordinators/Coordinator.swift`](../../Assignment/Coordinators/Coordinator.swift), [`AppCoordinator.swift`](../../Assignment/Coordinators/AppCoordinator.swift), [`AuthenticationCoordinator.swift`](../../Assignment/Coordinators/AuthenticationCoordinator.swift), [`MoviesCoordinator.swift`](../../Assignment/Coordinators/MoviesCoordinator.swift), [`MoviesRoute.swift`](../../Assignment/Coordinators/MoviesRoute.swift).
-4. [`Assignment/ViewModels/MovieSearchViewModel.swift`](../../Assignment/ViewModels/MovieSearchViewModel.swift), [`MovieDetailViewModel.swift`](../../Assignment/ViewModels/MovieDetailViewModel.swift).
-5. [`Assignment/Views/MoviesListView.swift`](../../Assignment/Views/MoviesListView.swift), [`MovieDetailView.swift`](../../Assignment/Views/MovieDetailView.swift).
+1. [`CineConnect/CineConnectApp.swift`](../../CineConnect/CineConnectApp.swift) — entry point.
+2. [`CineConnect/App/AppDependencyContainer.swift`](../../CineConnect/App/AppDependencyContainer.swift) — composition root.
+3. [`CineConnect/Coordinators/Coordinator.swift`](../../CineConnect/Coordinators/Coordinator.swift), [`AppCoordinator.swift`](../../CineConnect/Coordinators/AppCoordinator.swift), [`AuthenticationCoordinator.swift`](../../CineConnect/Coordinators/AuthenticationCoordinator.swift), [`MoviesCoordinator.swift`](../../CineConnect/Coordinators/MoviesCoordinator.swift), [`MoviesRoute.swift`](../../CineConnect/Coordinators/MoviesRoute.swift).
+4. [`CineConnect/ViewModels/MovieSearchViewModel.swift`](../../CineConnect/ViewModels/MovieSearchViewModel.swift), [`MovieDetailViewModel.swift`](../../CineConnect/ViewModels/MovieDetailViewModel.swift).
+5. [`CineConnect/Views/MoviesListView.swift`](../../CineConnect/Views/MoviesListView.swift), [`MovieDetailView.swift`](../../CineConnect/Views/MovieDetailView.swift).
 
 ## Interview-preparation order
 
@@ -78,7 +78,7 @@ assume you can read the composition root and coordinator code fluently.
 
 - [`../ARCHITECTURE_REFACTOR_PLAN.md`](../ARCHITECTURE_REFACTOR_PLAN.md) — the full migration plan, phase list, and CC0–CC4 audit.
 - [`../../SECURITY.md`](../../SECURITY.md) — the credential-exposure incident and remediation (kept in place, not moved here).
-- Test suites: [`AssignmentTests/`](../../AssignmentTests/), [`AssignmentUITests/`](../../AssignmentUITests/).
+- Test suites: [`CineConnectTests/`](../../CineConnectTests/), [`CineConnectUITests/`](../../CineConnectUITests/).
 
 ## A note on folder structure
 

@@ -10,8 +10,8 @@ Those API service classes did four jobs in one method: build the request,
 call `RemoteService`, map the decoded DTO to a domain model, *and*
 read/write `MovieCache` as a fallback on failure. Domain models (`Movie`,
 `MovieDetail`) already lived free of DTO leakage, but under
-`Assignment/Models/`, organizationally mixed with the DTOs themselves
-(`Assignment/Models/DTOs/`). Mapping (`toMovies()`/`toMovieDetail()`)
+`CineConnect/Models/`, organizationally mixed with the DTOs themselves
+(`CineConnect/Models/DTOs/`). Mapping (`toMovies()`/`toMovieDetail()`)
 was already explicit, as extensions on the DTOs, just not filed separately
 from the DTOs' decoding shape.
 
@@ -37,14 +37,14 @@ request from a *cancelled* one? (It didn't - see §14.)
 
 ## 4. Files introduced
 
-- `Assignment/Domain/Models/Movie.swift`, `MovieDetail.swift` (moved, not new content)
-- `Assignment/Domain/MovieRepository.swift`
-- `Assignment/Domain/UseCases/SearchMoviesUseCase.swift`
-- `Assignment/Domain/UseCases/GetMovieDetailUseCase.swift`
-- `Assignment/Data/DTOs/MovieSearchDTO.swift`, `MovieDetailDTO.swift` (moved, decoding-only)
-- `Assignment/Data/Mappers/MovieSearchMapper.swift`, `MovieDetailMapper.swift` (moved out of the DTO files)
-- `Assignment/Data/DefaultMovieRepository.swift`
-- Tests: `AssignmentTests/Fakes/FakeMovieRepository.swift`, `FakeMovieAPIServices.swift`,
+- `CineConnect/Domain/Models/Movie.swift`, `MovieDetail.swift` (moved, not new content)
+- `CineConnect/Domain/MovieRepository.swift`
+- `CineConnect/Domain/UseCases/SearchMoviesUseCase.swift`
+- `CineConnect/Domain/UseCases/GetMovieDetailUseCase.swift`
+- `CineConnect/Data/DTOs/MovieSearchDTO.swift`, `MovieDetailDTO.swift` (moved, decoding-only)
+- `CineConnect/Data/Mappers/MovieSearchMapper.swift`, `MovieDetailMapper.swift` (moved out of the DTO files)
+- `CineConnect/Data/DefaultMovieRepository.swift`
+- Tests: `CineConnectTests/Fakes/FakeMovieRepository.swift`, `FakeMovieAPIServices.swift`,
   `MovieSearchMapperTests.swift`, `MovieDetailMapperTests.swift`,
   `DefaultMovieRepositoryTests.swift`, `SearchMoviesUseCaseTests.swift`,
   `GetMovieDetailUseCaseTests.swift`, `MovieSearchViewModelTests.swift`,
@@ -52,15 +52,15 @@ request from a *cancelled* one? (It didn't - see §14.)
 
 ## 5. Files modified
 
-- `Assignment/Services/MovieSearchAPIService.swift`, `MovieDetailAPIService.swift` (cache logic removed)
-- `Assignment/ViewModels/MovieSearchViewModel.swift` (depends on `SearchMoviesUseCase`, not `MovieSearchAPIServiceProtocol`; `SearchError` now `Equatable`)
-- `Assignment/ViewModels/MovieDetailViewModel.swift` (depends on `GetMovieDetailUseCase`; `DetailError` now `Equatable`)
-- `Assignment/Coordinators/MoviesCoordinator.swift` (builds repository -> use case -> ViewModel chain)
-- `Assignment/Views/MoviesListView.swift`, `MovieDetailView.swift` (preview call sites updated)
+- `CineConnect/Services/MovieSearchAPIService.swift`, `MovieDetailAPIService.swift` (cache logic removed)
+- `CineConnect/ViewModels/MovieSearchViewModel.swift` (depends on `SearchMoviesUseCase`, not `MovieSearchAPIServiceProtocol`; `SearchError` now `Equatable`)
+- `CineConnect/ViewModels/MovieDetailViewModel.swift` (depends on `GetMovieDetailUseCase`; `DetailError` now `Equatable`)
+- `CineConnect/Coordinators/MoviesCoordinator.swift` (builds repository -> use case -> ViewModel chain)
+- `CineConnect/Views/MoviesListView.swift`, `MovieDetailView.swift` (preview call sites updated)
 
 ## 6. Files removed
 
-`Assignment/Models/` and `Assignment/Models/DTOs/` (emptied by the moves above, then removed as directories).
+`CineConnect/Models/` and `CineConnect/Models/DTOs/` (emptied by the moves above, then removed as directories).
 
 ## 7. Runtime flow before
 
@@ -112,7 +112,7 @@ level, via `FakeMovieRepository`), `DefaultMovieRepositoryTests`
 
 ## 9. Code excerpts
 
-**Exact production code** (`Assignment/Domain/UseCases/SearchMoviesUseCase.swift`):
+**Exact production code** (`CineConnect/Domain/UseCases/SearchMoviesUseCase.swift`):
 
 ```swift
 struct SearchMoviesUseCase {
@@ -130,7 +130,7 @@ struct SearchMoviesUseCase {
 }
 ```
 
-**Exact production code** (`Assignment/Data/DefaultMovieRepository.swift`,
+**Exact production code** (`CineConnect/Data/DefaultMovieRepository.swift`,
 the cancellation-vs-failure distinction):
 
 ```swift
@@ -154,7 +154,7 @@ func searchMovies(query: String) async throws -> [Movie] {
 
 ```bash
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
-  -project Assignment.xcodeproj -scheme Assignment \
+  -project CineConnect.xcodeproj -scheme CineConnect \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
   -configuration Debug CODE_SIGNING_ALLOWED=NO clean test
 ```
@@ -177,7 +177,7 @@ across six new test files. Fixed by adding `@MainActor` to each affected
 `SearchMoviesUseCaseTests` (5), `GetMovieDetailUseCaseTests` (2),
 `MovieSearchViewModelTests` (5), `MovieDetailViewModelTests` (3) — 29 new
 tests on top of the 10 existing ones (was 10, is 40 — one existing test,
-`AssignmentTests.movieModelIsHashableAndCodable`, plus the smoke test,
+`CineConnectTests.movieModelIsHashableAndCodable`, plus the smoke test,
 account for the remaining count alongside the previous phases' 8).
 
 ## 12. Alternatives
@@ -250,8 +250,8 @@ that policy one home, and gives ViewModels a boundary they can fake in
 tests without also faking caching behavior.
 
 **Code evidence:**
-- `Assignment/Domain/MovieRepository.swift`
-- `Assignment/Data/DefaultMovieRepository.swift`
+- `CineConnect/Domain/MovieRepository.swift`
+- `CineConnect/Data/DefaultMovieRepository.swift`
 - Tests: `DefaultMovieRepositoryTests` (5 tests)
 
 **Follow-up question:** Why not call the API service directly from the ViewModel?
@@ -302,8 +302,8 @@ in its own file as a deliberate pass-through, not presented as if it were
 doing real work.
 
 **Code evidence:**
-- `Assignment/Domain/UseCases/GetMovieDetailUseCase.swift` (its own doc comment says exactly this)
-- Contrast: `Assignment/Domain/UseCases/SearchMoviesUseCase.swift`, which owns real query-normalization logic
+- `CineConnect/Domain/UseCases/GetMovieDetailUseCase.swift` (its own doc comment says exactly this)
+- Contrast: `CineConnect/Domain/UseCases/SearchMoviesUseCase.swift`, which owns real query-normalization logic
 
 **Follow-up question:** So why not just delete `GetMovieDetailUseCase` and
 have `MovieDetailViewModel` depend on `MovieRepository` directly?

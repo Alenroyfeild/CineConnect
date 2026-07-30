@@ -30,16 +30,16 @@ Views via required initializer parameters.
 
 ## 4. Files introduced
 
-- `Assignment/Coordinators/MoviesRoute.swift`
-- `AssignmentTests/MoviesCoordinatorTests.swift`
+- `CineConnect/Coordinators/MoviesRoute.swift`
+- `CineConnectTests/MoviesCoordinatorTests.swift`
 
 ## 5. Files modified
 
-- `Assignment/Coordinators/MoviesCoordinator.swift`
-- `Assignment/Views/MoviesListView.swift`
-- `Assignment/Views/MovieDetailView.swift`
-- `Assignment/ViewModels/MovieSearchViewModel.swift` (deleted the now-dead `convenience init()`)
-- `Assignment/ViewModels/MovieDetailViewModel.swift` (same)
+- `CineConnect/Coordinators/MoviesCoordinator.swift`
+- `CineConnect/Views/MoviesListView.swift`
+- `CineConnect/Views/MovieDetailView.swift`
+- `CineConnect/ViewModels/MovieSearchViewModel.swift` (deleted the now-dead `convenience init()`)
+- `CineConnect/ViewModels/MovieDetailViewModel.swift` (same)
 
 ## 6. Files removed
 
@@ -92,7 +92,7 @@ gap, see `CURRENT_IMPLEMENTATION.md`).
 
 ## 9. Code excerpts
 
-**Exact production code** (`Assignment/Coordinators/MoviesRoute.swift`):
+**Exact production code** (`CineConnect/Coordinators/MoviesRoute.swift`):
 
 ```swift
 enum MoviesRoute: Hashable {
@@ -182,8 +182,8 @@ actually need, and it's the type that will absorb a second destination
 later without touching how the search row declares its intent.
 
 **Code evidence:**
-- `Assignment/Coordinators/MoviesRoute.swift`
-- `Assignment/Views/MoviesListView.swift` (`NavigationLink(value: MoviesRoute.detail(movie))`)
+- `CineConnect/Coordinators/MoviesRoute.swift`
+- `CineConnect/Views/MoviesListView.swift` (`NavigationLink(value: MoviesRoute.detail(movie))`)
 - Test: `MoviesCoordinatorTests.appendingDetailRouteGrowsPath`
 
 **Follow-up question:** With only one case, isn't this over-engineering?

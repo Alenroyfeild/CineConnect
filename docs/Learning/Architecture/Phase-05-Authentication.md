@@ -37,27 +37,27 @@ data-clearing into one service. Remove all credential-value logging.
 
 ## 4. Files introduced
 
-- `Assignment/Storage/KeychainStore.swift` (actor + `SecureKeyValueStoring` protocol)
-- `Assignment/Storage/CredentialsStore.swift`
-- `Assignment/Storage/WebDataClearingService.swift`
-- `Assignment/Views/Login/HotstarCredentialExtractor.swift`
+- `CineConnect/Storage/KeychainStore.swift` (actor + `SecureKeyValueStoring` protocol)
+- `CineConnect/Storage/CredentialsStore.swift`
+- `CineConnect/Storage/WebDataClearingService.swift`
+- `CineConnect/Views/Login/HotstarCredentialExtractor.swift`
 - `docs/SWIFTUI_UIKIT_INTEROPERABILITY.md`
-- Tests: `AssignmentTests/CredentialsStoreTests.swift`, `AuthManagerTests.swift`,
+- Tests: `CineConnectTests/CredentialsStoreTests.swift`, `AuthManagerTests.swift`,
   `HotstarCredentialExtractorTests.swift`,
-  `AssignmentTests/Fakes/InMemoryKeyValueStore.swift`
+  `CineConnectTests/Fakes/InMemoryKeyValueStore.swift`
 
 ## 5. Files modified
 
-- `Assignment/Utils/AuthManager.swift` (rewritten - thin `@MainActor` wrapper over `CredentialsStore`/`WebDataClearingService`; dead `navigateToLogin` removed; no more `UserDefaults`, no more prefix-printing)
-- `Assignment/Views/Login/LoginViewController.swift` (injected `AuthManager`; uses `HotstarCredentialExtractor` and `WebDataClearingService`; removed the now-redundant "already authenticated" check)
-- `Assignment/Views/Login/LoginView.swift` (threads `authManager` through)
-- `Assignment/Coordinators/AuthenticationCoordinator.swift` (passes `authManager` to `LoginView`)
-- `Assignment/Coordinators/AppCoordinator.swift` (`start()` is now `async`; `root` starts at `.auth` and is corrected once real state is known)
-- `Assignment/AssignmentApp.swift` (`.task` instead of `.onAppear`)
-- `Assignment/Views/MoviesListView.swift` (`logout()` wrapped in a `Task`)
-- `Assignment/Services/Remote/Interceptors.swift` (`AuthHeaderProviding.getHeaders()` is now `async`)
-- `AssignmentTests/AppCoordinatorTests.swift` (rewritten - see §15/§18, this is the interesting part)
-- `AssignmentTests/RemoteServiceTests.swift` (fake provider updated for the async protocol)
+- `CineConnect/Utils/AuthManager.swift` (rewritten - thin `@MainActor` wrapper over `CredentialsStore`/`WebDataClearingService`; dead `navigateToLogin` removed; no more `UserDefaults`, no more prefix-printing)
+- `CineConnect/Views/Login/LoginViewController.swift` (injected `AuthManager`; uses `HotstarCredentialExtractor` and `WebDataClearingService`; removed the now-redundant "already authenticated" check)
+- `CineConnect/Views/Login/LoginView.swift` (threads `authManager` through)
+- `CineConnect/Coordinators/AuthenticationCoordinator.swift` (passes `authManager` to `LoginView`)
+- `CineConnect/Coordinators/AppCoordinator.swift` (`start()` is now `async`; `root` starts at `.auth` and is corrected once real state is known)
+- `CineConnect/CineConnectApp.swift` (`.task` instead of `.onAppear`)
+- `CineConnect/Views/MoviesListView.swift` (`logout()` wrapped in a `Task`)
+- `CineConnect/Services/Remote/Interceptors.swift` (`AuthHeaderProviding.getHeaders()` is now `async`)
+- `CineConnectTests/AppCoordinatorTests.swift` (rewritten - see §15/§18, this is the interesting part)
+- `CineConnectTests/RemoteServiceTests.swift` (fake provider updated for the async protocol)
 
 ## 6. Files removed
 
@@ -79,7 +79,7 @@ proceedButtonTapped -> extractAndSaveHeaders
 ## 8. Runtime flow after
 
 ```
-AssignmentApp.body: .task { await appCoordinator.start() }
+CineConnectApp.body: .task { await appCoordinator.start() }
   AppCoordinator.start()
     await authManager.refreshAuthenticationState()
       await credentialsStore.isAuthenticated()    // Keychain-backed, async
@@ -95,7 +95,7 @@ proceedButtonTapped -> Task { await extractAndSaveHeaders() }
 
 Numbered, with file/type/method/context:
 
-1. **File:** `AssignmentApp.swift` · `.task` modifier · runs once per view
+1. **File:** `CineConnectApp.swift` · `.task` modifier · runs once per view
    appearance, `@MainActor` (SwiftUI task modifiers run on the main actor
    by default).
 2. **File:** `AppCoordinator.swift` · `start()` · suspension point: `await
@@ -129,7 +129,7 @@ Numbered, with file/type/method/context:
 
 ## 9. Code excerpts
 
-**Exact production code** (`Assignment/Coordinators/AppCoordinator.swift`,
+**Exact production code** (`CineConnect/Coordinators/AppCoordinator.swift`,
 the async `start()` redesign):
 
 ```swift
@@ -145,7 +145,7 @@ func start() async {
 }
 ```
 
-**Exact production code** (`Assignment/Storage/KeychainStore.swift`, the
+**Exact production code** (`CineConnect/Storage/KeychainStore.swift`, the
 protocol that made this phase's tests possible at all):
 
 ```swift
@@ -162,7 +162,7 @@ actor KeychainStore: SecureKeyValueStoring { ... }
 
 ```bash
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
-  -project Assignment.xcodeproj -scheme Assignment \
+  -project CineConnect.xcodeproj -scheme CineConnect \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
   -configuration Debug CODE_SIGNING_ALLOWED=NO clean test
 ```
@@ -282,8 +282,8 @@ the hard way, when the real Keychain turned out to be unreachable from this
 project's unsigned test-host environment (`errSecMissingEntitlement`).
 
 **Code evidence:**
-- `Assignment/Storage/CredentialsStore.swift`
-- `Assignment/Storage/KeychainStore.swift` (the `SecureKeyValueStoring` protocol and its doc comment)
+- `CineConnect/Storage/CredentialsStore.swift`
+- `CineConnect/Storage/KeychainStore.swift` (the `SecureKeyValueStoring` protocol and its doc comment)
 - Tests: `CredentialsStoreTests` (5), using `InMemoryKeyValueStore`
 
 **Follow-up question:** Is an actor here protecting against a real data

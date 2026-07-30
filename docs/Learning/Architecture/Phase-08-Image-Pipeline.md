@@ -28,16 +28,16 @@ backed by `ImageLoader` instead of `URLCache`.
 
 ## 4. Files introduced
 
-- `Assignment/Caching/ImageLoader.swift`
-- `Assignment/Views/Components/CachedAsyncImage.swift`
-- Tests: `AssignmentTests/ImageLoaderTests.swift`,
-  `AssignmentTests/Fakes/StubImageURLProtocol.swift`
+- `CineConnect/Caching/ImageLoader.swift`
+- `CineConnect/Views/Components/CachedAsyncImage.swift`
+- Tests: `CineConnectTests/ImageLoaderTests.swift`,
+  `CineConnectTests/Fakes/StubImageURLProtocol.swift`
 
 ## 5. Files modified
 
-- `Assignment/App/AppDependencyContainer.swift` (`imageLoader` property)
-- `Assignment/AssignmentApp.swift` (`.environment(\.imageLoader, ...)` at the root)
-- `Assignment/Views/MoviesListView.swift`, `MovieDetailView.swift` (`AsyncImage` → `CachedAsyncImage`)
+- `CineConnect/App/AppDependencyContainer.swift` (`imageLoader` property)
+- `CineConnect/CineConnectApp.swift` (`.environment(\.imageLoader, ...)` at the root)
+- `CineConnect/Views/MoviesListView.swift`, `MovieDetailView.swift` (`AsyncImage` → `CachedAsyncImage`)
 
 ## 6. Files removed
 
@@ -53,7 +53,7 @@ MovieSearchRowView.posterImage
 ## 8. Runtime flow after
 
 ```
-AssignmentApp.body
+CineConnectApp.body
   .environment(\.imageLoader, dependencyContainer.imageLoader)   // set once, at the root
 
 MovieSearchRowView.posterImage
@@ -92,7 +92,7 @@ Numbered, with file/type/method/context:
 
 ## 9. Code excerpts
 
-**Exact production code** (`Assignment/Caching/ImageLoader.swift`):
+**Exact production code** (`CineConnect/Caching/ImageLoader.swift`):
 
 ```swift
 actor ImageLoader {
@@ -123,7 +123,7 @@ actor ImageLoader {
 
 ```bash
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
-  -project Assignment.xcodeproj -scheme Assignment \
+  -project CineConnect.xcodeproj -scheme CineConnect \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
   -configuration Debug CODE_SIGNING_ALLOWED=NO clean test
 ```
@@ -222,7 +222,7 @@ movie data, giving the app one consistent, inspectable caching story
 instead of two (one visible, one opaque).
 
 **Code evidence:**
-- `Assignment/Caching/ImageLoader.swift`
+- `CineConnect/Caching/ImageLoader.swift`
 - Test: `ImageLoaderTests.secondRequestForSameURLHitsMemoryCacheNotNetwork`
 
 **Follow-up question:** Doesn't reusing `MemoryCache<URL, UIImage>` risk

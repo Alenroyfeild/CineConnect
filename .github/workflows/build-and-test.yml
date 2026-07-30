@@ -36,8 +36,8 @@ jobs:
       - name: Build and test
         run: |
           xcodebuild \
-            -project Assignment.xcodeproj \
-            -scheme Assignment \
+            -project CineConnect.xcodeproj \
+            -scheme CineConnect \
             -destination "platform=iOS Simulator,name=${{ steps.simulator.outputs.device_name }}" \
             -configuration Debug \
             CODE_SIGNING_ALLOWED=NO \

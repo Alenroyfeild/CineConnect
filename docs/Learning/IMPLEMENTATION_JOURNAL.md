@@ -35,7 +35,7 @@ routes, ViewModels self-constructing their API services.
 
 ## Security remediation (2026-07-29)
 
-**Problem found:** `Assignment/Services/Remote/Constants.swift` hardcoded a
+**Problem found:** `CineConnect/Services/Remote/Constants.swift` hardcoded a
 real authentication token with an embedded personal-data payload, public
 since the repository's first commit.
 
@@ -76,14 +76,14 @@ doc).
 **Problem found:** zero test targets existed; `xcodebuild -list` showed one
 target, one scheme.
 
-**What changed:** added `AssignmentTests` (Swift Testing) and
-`AssignmentUITests` (XCTest/`XCUIApplication`) as native targets via a
+**What changed:** added `CineConnectTests` (Swift Testing) and
+`CineConnectUITests` (XCTest/`XCUIApplication`) as native targets via a
 minimal, targeted `project.pbxproj` edit — new `PBXNativeTarget`/
 `PBXTargetDependency`/`XCConfigurationList` entries only.
 
-**Files changed:** `Assignment.xcodeproj/project.pbxproj`,
-`AssignmentTests/AssignmentTests.swift`,
-`AssignmentUITests/AssignmentUITests.swift`.
+**Files changed:** `CineConnect.xcodeproj/project.pbxproj`,
+`CineConnectTests/CineConnectTests.swift`,
+`CineConnectUITests/CineConnectUITests.swift`.
 
 **Build result:** `plutil -lint` clean, `xcodebuild -list` shows all three
 targets, `xcodebuild build` succeeds, `xcodebuild test` runs both new
@@ -114,17 +114,17 @@ defaulted to the global singleton itself.
 **New design:** `AppDependencyContainer` is the one place that resolves
 `AuthManager.shared`; every coordinator's initializer now *requires*
 `authManager` with no default, so nothing downstream can silently reach for
-the singleton. `AssignmentApp.init()` builds the container, then asks it for
+the singleton. `CineConnectApp.init()` builds the container, then asks it for
 the coordinator.
 
 **Runtime behavior:** unchanged for the user — same login/movies root
 switching as before.
 
-**Files changed:** new `Assignment/App/AppDependencyContainer.swift`;
-modified `AssignmentApp.swift`, `AppCoordinator.swift`, `MoviesCoordinator.swift`;
+**Files changed:** new `CineConnect/App/AppDependencyContainer.swift`;
+modified `CineConnectApp.swift`, `AppCoordinator.swift`, `MoviesCoordinator.swift`;
 renamed `AuthCoordinator.swift` → `AuthenticationCoordinator.swift`.
 
-**Tests added:** `AssignmentTests/AppCoordinatorTests.swift` (6 tests) —
+**Tests added:** `CineConnectTests/AppCoordinatorTests.swift` (6 tests) —
 root-switching on auth state, the `onAuthenticated`/`onLogout` closures
 bubbling correctly, and the container's factory method.
 
@@ -161,7 +161,7 @@ job to change, not this one's).
 `MovieDetailViewModel.swift` (deleted the now-dead `convenience init()` on
 both ViewModels rather than leaving unused code behind).
 
-**Tests added:** `AssignmentTests/MoviesCoordinatorTests.swift` (2 tests) —
+**Tests added:** `CineConnectTests/MoviesCoordinatorTests.swift` (2 tests) —
 path starts empty, appending a route grows it.
 
 **Alternative considered:** carrying only `movieID`/`slug` in the route
@@ -502,8 +502,8 @@ test had to wait a generous real margin over 500ms.
 parameter (default `.milliseconds(500)`, unchanged production behavior).
 Tests use 5-20ms intervals instead.
 
-**Files changed:** `Assignment/ViewModels/MovieSearchViewModel.swift`,
-`AssignmentTests/MovieSearchViewModelTests.swift`.
+**Files changed:** `CineConnect/ViewModels/MovieSearchViewModel.swift`,
+`CineConnectTests/MovieSearchViewModelTests.swift`.
 
 **Runtime behavior:** unchanged for the user - the production default is
 identical to the pre-Phase-7 hardcoded value.

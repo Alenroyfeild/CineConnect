@@ -2,9 +2,12 @@
 #
 # Lightweight documentation-reference check for docs/Learning and other
 # markdown docs: every relative markdown link must resolve to a real file,
-# and every `Assignment/...`/`AssignmentTests/...`/`AssignmentUITests/...`
-# path mentioned in backticks must exist. Not a full link/prose checker -
-# just enough to catch "this doc points at a file that no longer exists."
+# and every `CineConnect/...`/`CineConnectTests/...`/`CineConnectUITests/...`
+# path mentioned in backticks must exist. Also matches the pre-Phase-9
+# `Assignment...` prefix, so a doc that forgot to update a path reference
+# after the rename gets caught (unless it's a marked historical mention -
+# see the window check below). Not a full link/prose checker - just enough
+# to catch "this doc points at a file that no longer exists."
 #
 # Usage: scripts/check-docs-links.sh
 
@@ -47,7 +50,7 @@ while IFS=: read -r file line rest; do
         echo "STALE PATH REFERENCE: $file:$line -> $path"
         fail=1
     fi
-done < <(grep -rnoE '`(Assignment[A-Za-z]*/[A-Za-z0-9_./-]+\.swift)`' docs/Learning --include="*.md" 2>/dev/null)
+done < <(grep -rnoE '`((Assignment|CineConnect)[A-Za-z]*/[A-Za-z0-9_./-]+\.swift)`' docs/Learning --include="*.md" 2>/dev/null)
 
 if [[ "$fail" -eq 1 ]]; then
     echo ""

@@ -37,8 +37,8 @@ redesign wasn't warranted).
 
 ## 5. Files modified
 
-- `Assignment/ViewModels/MovieSearchViewModel.swift` (`debounceInterval` parameter)
-- `AssignmentTests/MovieSearchViewModelTests.swift` (rewritten to use short intervals; one new test)
+- `CineConnect/ViewModels/MovieSearchViewModel.swift` (`debounceInterval` parameter)
+- `CineConnectTests/MovieSearchViewModelTests.swift` (rewritten to use short intervals; one new test)
 
 ## 6. Files removed
 
@@ -73,7 +73,7 @@ against a 5-20ms debounce instead of 500ms).
 
 ## 9. Code excerpts
 
-**Exact production code** (`Assignment/ViewModels/MovieSearchViewModel.swift`):
+**Exact production code** (`CineConnect/ViewModels/MovieSearchViewModel.swift`):
 
 ```swift
 init(searchMovies: SearchMoviesUseCase, debounceInterval: DispatchQueue.SchedulerTimeType.Stride = .milliseconds(500)) {
@@ -87,7 +87,7 @@ init(searchMovies: SearchMoviesUseCase, debounceInterval: DispatchQueue.Schedule
 
 ```bash
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
-  -project Assignment.xcodeproj -scheme Assignment \
+  -project CineConnect.xcodeproj -scheme CineConnect \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
   -configuration Debug CODE_SIGNING_ALLOWED=NO clean test
 ```
@@ -167,7 +167,7 @@ models that directly and more simply than wrapping it in a `Future` or a
 single-value `Publisher` would.
 
 **Code evidence:**
-- `Assignment/ViewModels/MovieSearchViewModel.swift`'s `setupSearchObserver()` (Combine) and `search(query:)` (async/await)
+- `CineConnect/ViewModels/MovieSearchViewModel.swift`'s `setupSearchObserver()` (Combine) and `search(query:)` (async/await)
 
 **Follow-up question:** How do the two actually connect - what bridges a
 Combine `sink` into a `Task`?

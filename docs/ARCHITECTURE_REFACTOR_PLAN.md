@@ -7,7 +7,7 @@ described in §0 and are kept as originally written for audit-trail purposes.
 
 ## 0. Critical finding — RESOLVED
 
-`Assignment/Services/Remote/Constants.swift` hardcoded a real-looking Hotstar
+`CineConnect/Services/Remote/Constants.swift` hardcoded a real-looking Hotstar
 `x-hs-usertoken` JWT together with what decodes to a name, a phone number,
 device IDs, and subscription/expiry data. It had been present since the
 repository's first commit and was already public on GitHub. The constant was
@@ -77,7 +77,7 @@ correct merely because it exists):
 Not yet touched by CC0–CC4 (confirmed still true in this audit, see §1):
 DI/composition root, `RemoteService`/`AuthManager` singletons, the
 `isSuccess`/double-encoding bugs, `MovieCache` concurrency safety, any test
-target, the image pipeline, and the `Assignment`→`CineConnect` naming.
+target, the image pipeline, and the `CineConnect`→`CineConnect` naming.
 
 ## 1c. Coordinator/navigation audit (retain / refactor / merge / rename / replace / remove)
 
@@ -121,11 +121,11 @@ above is "refactor in place," not "build a second system and cut over."
 
 ## 1. Current-state audit
 
-Verified by reading source directly (paths relative to `Assignment/`).
+Verified by reading source directly (paths relative to `CineConnect/`).
 
 | Claim from the request | Verified? | Evidence |
 |---|---|---|
-| App entry depends on `AuthManager.shared` | **Partially superseded** | `AssignmentApp.swift` now goes through `AppCoordinator`, but `AppCoordinator.init`, `AuthCoordinator.init`, and `MoviesCoordinator.init` all default-parameter to `AuthManager.shared`, and `LoginViewController.viewDidLoad` / `extractAndSaveHeaders` call `AuthManager.shared` directly. |
+| App entry depends on `AuthManager.shared` | **Partially superseded** | `CineConnectApp.swift` now goes through `AppCoordinator`, but `AppCoordinator.init`, `AuthCoordinator.init`, and `MoviesCoordinator.init` all default-parameter to `AuthManager.shared`, and `LoginViewController.viewDidLoad` / `extractAndSaveHeaders` call `AuthManager.shared` directly. |
 | Views construct concrete ViewModels themselves | **True** | `MoviesListView` and `MovieDetailView` use `@StateObject private var viewModel = MovieSearchViewModel()` / `MovieDetailViewModel()` (convenience inits), not injected. |
 | ViewModels construct concrete API services via convenience initializers | **True** | `MovieSearchViewModel.convenience init()` → `MovieSearchAPIService()`; `MovieDetailViewModel.convenience init()` → `MovieDetailAPIService()`. |
 | Navigation to movie details lives inside `MoviesListView` | **Superseded** | Now lives in `MoviesCoordinator.makeView()` via `.navigationDestination(for: Movie.self)`. `MoviesListView` only emits `NavigationLink(value: movie)`. This part of the prior audit is out of date — CC1/CC2 already fixed it. |
@@ -141,14 +141,14 @@ Verified by reading source directly (paths relative to `Assignment/`).
 | `AsyncImage` has no app-controlled cache | **True** | Both views use plain SwiftUI `AsyncImage(url:)`; no memory/disk policy, no dedup, no cancellation control beyond what SwiftUI gives for free. |
 | HTTP success check should be `200..<300` | **True bug, in two places** | `Remote.swift:99` — `HTTPURLResponse.isSuccess` is `statusCode <= 200 && statusCode <= 299`, i.e. **only 200 exactly** passes (a 201, 204, 299 would all report `false`, since a number can't be both `<=200` and `<=299` unless it's `≤200`, so really only ≤200 governs — meaning even negative/absurd values would pass and 201–299 would fail). This is used both by `RemoteService.execute` (`httpResponse.isSuccess`) and is the "existing" bug the audit describes. |
 | Query values manually percent-encoded before `URLQueryItem` | **True** | `MovieSearchAPIService.searchVideos` calls `.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)` on `query` and on `referrerProps`, then passes the *already-encoded* string into a `[String: String]` that `RemoteService.getURL` turns into `URLQueryItem(name:value:)` — `URLQueryItem`/`URLComponents` percent-encode again, so this is a real double-encoding risk (e.g. a literal `%20` in the query would become `%2520`). |
-| No proper test target | **True** | `xcodebuild -list -project Assignment.xcodeproj` shows one target (`Assignment`), one scheme (`Assignment`), no test target, no `Tests/` directory anywhere in the tree. |
-| Repository/product naming still contains `Assignment` | **True** | Target name, scheme, `PRODUCT_NAME`, and `PRODUCT_BUNDLE_IDENTIFIER = com.alenroyfeild.Assignment` all say `Assignment`. |
+| No proper test target | **True** | `xcodebuild -list -project CineConnect.xcodeproj` shows one target (`CineConnect`), one scheme (`CineConnect`), no test target, no `Tests/` directory anywhere in the tree. |
+| Repository/product naming still contains `CineConnect` | **True** | Target name, scheme, `PRODUCT_NAME`, and `PRODUCT_BUNDLE_IDENTIFIER = com.alenroyfeild.CineConnect` all say `CineConnect`. |
 | Deployment target / Swift settings need review | **True** | `IPHONEOS_DEPLOYMENT_TARGET = 26.2`, `SWIFT_VERSION = 5.0`, `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` (project-wide default MainActor isolation), `SWIFT_APPROACHABLE_CONCURRENCY = YES`. No `SWIFT_STRICT_CONCURRENCY` setting present (not opted into strict checking). Nothing in the app uses APIs newer than a much lower target (no App Intents, no observation-framework-only APIs) — 26.2 looks like "whatever Xcode's template picked," not a deliberate choice. |
 
 Additional facts not in the original list, found during this audit:
 
 - **`RemoteService.execute` never surfaces server-declared error bodies** (`RemoteErrorResponse` is defined but never decoded/thrown).
-- **`MovieCache` (`Assignment/Services/Cache/MovieCache.swift`) is a plain class, not an actor** — it's only ever touched from API service methods that are themselves called serially per-request today, but it has no concurrency protection if that changes, and no TTL/eviction (grows unbounded on disk, keyed by base64 of the query/slug).
+- **`MovieCache` (`CineConnect/Services/Cache/MovieCache.swift`) is a plain class, not an actor** — it's only ever touched from API service methods that are themselves called serially per-request today, but it has no concurrency protection if that changes, and no TTL/eviction (grows unbounded on disk, keyed by base64 of the query/slug).
 - **Coordinators exist (`AppCoordinator`, `AuthCoordinator`, `MoviesCoordinator`, `Coordinator` protocol) and already do real navigation composition** — this is further along than a from-scratch project; the remaining work is closing the DI/testability gap around them, not introducing coordinators from zero.
 - No `Info.plist` App Transport Security exceptions were found; networking is plain HTTPS to `www.hotstar.com`.
 
@@ -156,7 +156,7 @@ Additional facts not in the original list, found during this audit:
 
 ```mermaid
 graph TD
-    App[AssignmentApp] --> AppCoord[AppCoordinator]
+    App[CineConnectApp] --> AppCoord[AppCoordinator]
     AppCoord --> AuthCoord[AuthCoordinator]
     AppCoord --> MoviesCoord[MoviesCoordinator]
     AppCoord -->|default param| AuthMgrShared[AuthManager.shared]
@@ -183,7 +183,7 @@ around them.
 
 ## 3. Existing navigation flow
 
-- `AssignmentApp` → `AppCoordinator()` created once as a `@StateObject`; `start()` picks `.auth` or `.movies` from `authManager.isAuthenticated()`.
+- `CineConnectApp` → `AppCoordinator()` created once as a `@StateObject`; `start()` picks `.auth` or `.movies` from `authManager.isAuthenticated()`.
 - Auth root: `AuthCoordinator.makeView()` → `LoginView` (UIKit bridge) → on cookie/token extraction, `LoginViewController.onAuthenticated` closure fires → `AuthCoordinator.onAuthenticated` → `AppCoordinator.showMovies()`.
 - Movies root: `MoviesCoordinator.makeView()` owns a `NavigationStack`, pushes `MovieDetailView` via typed `navigationDestination(for: Movie.self)`. Logout button in `MoviesListView` calls `authManager.logout { onLogout?() }`, which bubbles to `MoviesCoordinator.onLogout` → `AppCoordinator.showAuth()`.
 - There is currently exactly one route type (`Movie` itself, used directly as the nav value) — no dedicated `MoviesRoute` enum yet.
@@ -234,7 +234,7 @@ Phases 0–9 as scoped in the working session (baseline → composition root →
 movies navigation/MVVM → domain/repository → networking → auth/UIKit bridge
 → actor caches → Combine hardening → image pipeline → project quality/rename).
 Each phase ends with: build via
-`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -scheme Assignment -destination 'platform=iOS Simulator,name=iPhone 17' build`,
+`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -scheme CineConnect -destination 'platform=iOS Simulator,name=iPhone 17' build`,
 a test run once the test target exists, and a phase report (files
 touched, decisions, build/test result, risks, next phase) before starting
 the next phase.
@@ -249,9 +249,9 @@ the next phase.
 
 ## 10. Acceptance criteria
 
-- Clean build succeeds on scheme `Assignment` for an iOS Simulator destination after every phase.
+- Clean build succeeds on scheme `CineConnect` for an iOS Simulator destination after every phase.
 - No forbidden pattern (§19 of the working session's instructions — `AuthManager.shared`, `RemoteService.shared`, service-locator Views, root-VC replacement, printed credentials, plaintext `UserDefaults` tokens, force-unwrapped production URLs, raw DTOs in SwiftUI, unbounded retry/cache) remains in the final tree.
 - `200..<300` success check and single-pass percent-encoding are fixed and covered by a networking test.
 - A real (non-empty) unit test target exists and passes; measured coverage is reported, not estimated.
 - Every doc listed in the working session's §16 exists and describes only code that actually landed.
-- Product/target/bundle rename from `Assignment` → `CineConnect` lands in its own isolated, reviewed commit after the behavior it renames is test-covered.
+- Product/target/bundle rename from `CineConnect` → `CineConnect` lands in its own isolated, reviewed commit after the behavior it renames is test-covered.
