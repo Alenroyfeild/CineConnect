@@ -21,6 +21,7 @@ struct AssignmentApp: App {
     var body: some Scene {
         WindowGroup {
             appCoordinator.makeRootView()
+                .environment(\.imageLoader, dependencyContainer.imageLoader)
                 .task { await appCoordinator.start() }
         }
     }

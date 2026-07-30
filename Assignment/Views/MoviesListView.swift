@@ -210,7 +210,7 @@ struct MovieSearchRowView: View {
     
     @ViewBuilder
     private var posterImage: some View {
-        AsyncImage(url: movie.posterURL) { phase in
+        CachedAsyncImage(url: movie.posterURL) { phase in
             Group {
                 switch phase {
                 case .empty:
@@ -220,8 +220,6 @@ struct MovieSearchRowView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fill)
                 case .failure:
-                    posterPlaceholder(isLoading: false)
-                @unknown default:
                     posterPlaceholder(isLoading: false)
                 }
             }

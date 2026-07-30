@@ -144,7 +144,7 @@ struct MovieDetailView: View {
     }
 
     private func posterImageView(url: URL?) -> some View {
-        AsyncImage(url: url) { phase in
+        CachedAsyncImage(url: url) { phase in
             switch phase {
             case .empty:
                 placeholderView(isLoading: true)
@@ -161,9 +161,6 @@ struct MovieDetailView: View {
 
             case .failure:
                 placeholderView(isLoading: false)
-
-            @unknown default:
-                EmptyView()
             }
         }
         .frame(height: 400)

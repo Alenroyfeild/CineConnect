@@ -554,7 +554,76 @@ in the phase journal.
 
 ---
 
-## Phase 8 onward
+## Phase 8 — Cached image pipeline
+
+**Previous design:** `MoviesListView`/`MovieDetailView` both used plain
+`AsyncImage(url:)` - caching entirely internal to `URLCache`, no
+application-level visibility or control.
+
+**New design:** `ImageLoader` (actor) reuses the *same*
+`MemoryCache`/`InFlightRequestStore` generic actors Phase 6 built for
+movie data - no parallel image-specific cache types. `CachedAsyncImage`
+(SwiftUI view) presents an `AsyncImage`-shaped phase API backed by
+`ImageLoader`, injected via the SwiftUI environment (not constructor
+injection - see `CachedAsyncImage.swift`'s doc comment for why images
+specifically use environment injection when `AuthManager`/`RemoteService`
+don't).
+
+**Files changed:** see `Architecture/Phase-08-Image-Pipeline.md` §4-6.
+
+**Runtime behavior:** visually unchanged; images now actually get
+deduplicated and cached at the app level instead of relying entirely on
+`URLCache`'s opaque behavior.
+
+**Two real bugs found and fixed during this phase, both instructive:**
+1. A compile error - `CachedAsyncImage<Content: View>`'s `Phase` enum was
+   originally nested inside the generic type (matching `AsyncImage`'s own
+   `AsyncImagePhase` naming instinct), which created circular generic
+   inference ("generic parameter 'Content' could not be inferred") since
+   the nested type's name resolution depends on `Content`, and `Content`
+   can only be inferred from a closure typed with that nested type. Fixed
+   by moving `Phase` (renamed `CachedImagePhase`) to file scope.
+2. A cross-suite test race - `ImageLoaderTests` initially reused Phase 4's
+   `StubURLProtocol`, and even though both consuming suites were
+   individually `.serialized`, Swift Testing still runs *different*
+   suites concurrently with each other, so the two suites intermittently
+   failed each other via shared static state. Fixed with a second,
+   independent stub type (`StubImageURLProtocol`) rather than building
+   cross-suite locking for test-only infrastructure.
+
+**Tests added:** 5 - `ImageLoaderTests` (successful load+decode,
+memory-cache hit, non-2xx throws, invalid data throws, ten-concurrent-
+requests-one-network-call).
+
+**Build result:** clean, 0 warnings, 108/108 tests passing - verified
+across three consecutive full-suite runs given the cross-suite flakiness
+found above.
+
+**Alternatives considered:** a disk cache layer for images (rejected for
+now - `URLCache` already provides some disk persistence, no demonstrated
+need for a second explicit layer); a resizing/downsampling pipeline
+(explicitly out of scope per this phase's own "not a full third-party
+image framework" instruction); constructor-injecting `ImageLoader`
+(rejected - images are used too deep in the view hierarchy for that to be
+anything but ceremony).
+
+**Why the final approach was selected:** maximum reuse of Phase 6's
+already-tested cache primitives, minimum new surface area.
+
+**New interview concepts demonstrated:** a genuine circular generic-type
+inference bug and its fix; SwiftUI environment injection as the right
+tool for a cross-cutting, deep-in-the-hierarchy dependency, contrasted
+with constructor injection used everywhere else in this codebase; a
+second instance of "shared static test-double state races across
+suites," reinforcing the Phase 4/6 lesson that any `.serialized` fix only
+protects within one suite.
+
+**Remaining debt:** no disk cache for images; no resizing/downsampling;
+cancellation-on-disappear relies on `.task(id:)` without a dedicated test.
+
+---
+
+## Phase 9 onward
 
 Not started. See `docs/ARCHITECTURE_REFACTOR_PLAN.md` for the full phase
 list and `docs/Learning/README.md` for current status labels.

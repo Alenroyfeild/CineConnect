@@ -18,8 +18,12 @@ import Foundation
 final class AppDependencyContainer {
     let authManager: AuthManager
     let remoteService: RemoteService
+    /// Set on the SwiftUI environment at the root (`AssignmentApp`), not
+    /// threaded through coordinators - see `CachedAsyncImage.swift`'s doc
+    /// comment for why images specifically use environment injection.
+    let imageLoader: ImageLoader
 
-    init(authManager: AuthManager? = nil, remoteService: RemoteService? = nil) {
+    init(authManager: AuthManager? = nil, remoteService: RemoteService? = nil, imageLoader: ImageLoader? = nil) {
         // `AuthManager.shared` is main-actor isolated; resolving it in the
         // init body (rather than as a default-argument expression) avoids
         // an actor-isolation warning on the default value itself.
@@ -28,6 +32,7 @@ final class AppDependencyContainer {
         self.remoteService = remoteService ?? RemoteService(
             preInterceptors: [AuthenticationInterceptor(headerProvider: resolvedAuthManager)]
         )
+        self.imageLoader = imageLoader ?? ImageLoader()
     }
 
     func makeAppCoordinator() -> AppCoordinator {

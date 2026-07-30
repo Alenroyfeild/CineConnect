@@ -31,7 +31,7 @@ when each piece landed.
 | Credentials store (Keychain-backed `CredentialsStore`) / UIKit auth bridge | Implemented and verified (real Keychain calls untested in this environment - see Phase 5 doc §10/§18) |
 | Actor-based memory/disk caches, request coalescing | Implemented and verified |
 | Combine/cancellation hardening (injectable debounce interval) | Implemented and verified |
-| Cached image pipeline | Planned (Phase 8) |
+| Cached image pipeline | Implemented and verified |
 | Project renaming, accessibility, CI, final docs | Planned (Phase 9) |
 
 ## Reading order
@@ -44,11 +44,12 @@ when each piece landed.
 6. `Architecture/Phase-05-Authentication.md` — also read `../SWIFTUI_UIKIT_INTEROPERABILITY.md` alongside this one.
 7. `Architecture/Phase-06-Caching.md` — read this one carefully if you're prepping for actor/concurrency interview questions; it has the project's clearest reentrancy example.
 8. `Architecture/Phase-07-Combine-and-Cancellation.md` — also read `../COMBINE_SEARCH_PIPELINE.md` alongside this one.
-9. `FILE_INDEX.md` — once you want file-by-file depth.
-10. `CONCEPT_TO_CODE_MAP.md` — once you want concept-first navigation instead of file-first.
+9. `Architecture/Phase-08-Image-Pipeline.md`
+10. `FILE_INDEX.md` — once you want file-by-file depth.
+11. `CONCEPT_TO_CODE_MAP.md` — once you want concept-first navigation instead of file-first.
 
-Phase 8 (cached image pipeline) is next; its doc will appear here once
-that phase actually lands.
+Phase 9 (project quality: renaming, accessibility, CI, final docs) is
+next; its doc will appear here once that phase actually lands.
 
 ## Code-reading order
 

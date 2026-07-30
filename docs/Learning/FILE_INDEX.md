@@ -42,6 +42,8 @@ are never left referenced here under their old name.
 | `Assignment/Caching/DiskCache.swift` | Caching | generic `actor` | TTL disk cache, corrupt-file recovery | Phase 6 | — | `DefaultMovieRepository` (detail only) | `DiskCacheTests` (5) | `nonisolated(unsafe)` on a documented-safe SDK singleton reference |
 | `Assignment/Caching/InFlightRequestStore.swift` | Caching | generic `actor` | Request coalescing | Phase 6 | — | `DefaultMovieRepository` | `InFlightRequestStoreTests` (4) | The project's clearest concrete actor-reentrancy example |
 | `Assignment/Caching/CachePolicy.swift` | Caching | `enum` | Three distinct cache-access behaviors | Phase 6 | — | `MovieRepository`, `DefaultMovieRepository` | Exercised by all `DefaultMovieRepositoryTests` | Deliberately excludes a fourth, redundant case |
+| `Assignment/Caching/ImageLoader.swift` | Caching | `actor` | Fetches/decodes/caches images, reusing `MemoryCache`+`InFlightRequestStore` | Phase 8 | `MemoryCache`, `InFlightRequestStore` | `CachedAsyncImage` | `ImageLoaderTests` (5) | Decoding happens off the main actor "for free" |
+| `Assignment/Views/Components/CachedAsyncImage.swift` | UI | `struct: View` (generic) + `EnvironmentKey` | `AsyncImage`-shaped view backed by `ImageLoader` | Phase 8 | `ImageLoader` (environment-injected) | `MoviesListView`, `MovieDetailView` | Indirectly via `ImageLoaderTests` | Nested `Phase` type caused circular generic inference - moved to file scope |
 
 ## Detailed entries
 

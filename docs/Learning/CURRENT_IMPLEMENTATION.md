@@ -2,7 +2,7 @@
 
 Updated after every phase. If this table and the actual code disagree, the
 code is right and this file is stale — file it as a bug in the migration,
-don't trust the table blindly. Last updated: end of Phase 7.
+don't trust the table blindly. Last updated: end of Phase 8.
 
 | Area | Current implementation | Key files | Tests | Build status | Remaining gaps |
 |---|---|---|---|---|---|
@@ -16,10 +16,10 @@ don't trust the table blindly. Last updated: end of Phase 7.
 | Networking | `RemoteService` built once by `AppDependencyContainer`, threaded through `MoviesCoordinator` (no more `.shared` default anywhere); `isSuccess` fixed to `200..<300`; double-percent-encoding fixed; bounded retry policy for GET requests; structured server-error decoding | `Assignment/Services/Remote/*.swift`, `Assignment/Services/MovieSearchAPIService.swift`, `MovieDetailAPIService.swift` | `RemoteServiceTests` (9), `RetryPolicyTests` (7), `RemoteErrorTests` (4) | Passing | No structured/redacted logging yet (Phase 9) |
 | Credentials | Keychain-backed via `CredentialsStore`/`KeychainStore` (Phase 5, replacing plaintext `UserDefaults`); `AuthManager` conforms to `AuthHeaderProviding`; all credential-prefix logging removed | `Assignment/Storage/CredentialsStore.swift`, `KeychainStore.swift`, `Assignment/Utils/AuthManager.swift` | `CredentialsStoreTests` (5, via in-memory fake), `AuthManagerTests` (5) | Passing | Real Keychain calls (`KeychainStore` itself) not covered by automated tests in this environment - `errSecMissingEntitlement` on unsigned builds; needs manual verification on a signed run |
 | Caching | `MemoryCache<Key,Value>` (TTL, LRU) + `DiskCache<Value>` (detail only) + `InFlightRequestStore<Key,Value>` (coalescing), all actors; `CachePolicy` (`.networkFirst`/`.cacheFirst`/`.reloadIgnoringCache`) drives `DefaultMovieRepository`; caches cleared on logout | `Assignment/Caching/*.swift`, `Assignment/Data/DefaultMovieRepository.swift` | `MemoryCacheTests` (8), `DiskCacheTests` (5), `InFlightRequestStoreTests` (4), `DefaultMovieRepositoryTests` (14) | Passing | `clearCaches()` doesn't cancel in-flight requests; no memory-warning observer; `.reloadIgnoringCache` has no UI trigger yet (Phase 9) |
-| Image loading | Plain SwiftUI `AsyncImage`, no app-level cache | `Assignment/Views/MoviesListView.swift`, `MovieDetailView.swift` | None | Passing | Phase 8 |
+| Image loading | `CachedAsyncImage` (SwiftUI, environment-injected) backed by `ImageLoader` actor, reusing `MemoryCache`/`InFlightRequestStore` from Phase 6 | `Assignment/Caching/ImageLoader.swift`, `Assignment/Views/Components/CachedAsyncImage.swift` | `ImageLoaderTests` (5) | Passing | No disk cache for images; no resizing/downsampling (Phase 8 doc §18) |
 | Combine | One pipeline: `$searchText` → `debounce` (injectable interval) → `removeDuplicates` → `sink` → `Task`; fully documented operator-by-operator | `MovieSearchViewModel.swift`, `docs/COMBINE_SEARCH_PIPELINE.md` | `MovieSearchViewModelTests` (6) | Passing | Tests use a real short interval, not a virtual-time scheduler (Combine doesn't ship one publicly) |
 | Concurrency | `@MainActor` ViewModels/coordinators; `KeychainStore`/`CredentialsStore` (Phase 5) plus `MemoryCache`/`DiskCache`/`InFlightRequestStore` (Phase 6) are real actors; project-wide `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor` required `nonisolated` on `Movie`/`MovieDetail` and `nonisolated(unsafe)` on `DiskCache`'s `FileManager` reference (see Phase 6 doc §10) | `Assignment/Caching/*.swift`, `Assignment/Storage/*.swift` | `InFlightRequestStoreTests` includes a documented actor-reentrancy scenario | Passing | No memory-warning-driven proactive cache eviction |
-| Testing | `AssignmentTests` (Swift Testing, 102 tests) + `AssignmentUITests` (XCTest, 1 smoke test) | `AssignmentTests/*.swift`, `AssignmentTests/Fakes/*.swift`, `AssignmentUITests/AssignmentUITests.swift` | 103 tests total, all passing | Passing | Real Keychain calls untested in this environment (documented limitation, not silently skipped) |
+| Testing | `AssignmentTests` (Swift Testing, 107 tests) + `AssignmentUITests` (XCTest, 1 smoke test) | `AssignmentTests/*.swift`, `AssignmentTests/Fakes/*.swift`, `AssignmentUITests/AssignmentUITests.swift` | 108 tests total, all passing | Passing | Real Keychain calls untested in this environment (documented limitation, not silently skipped) |
 | Documentation | `docs/ARCHITECTURE_REFACTOR_PLAN.md` (migration plan) + this `docs/Learning/` area | `docs/*.md`, `docs/Learning/*.md` | N/A | N/A | Kept in sync phase-by-phase per this file's own header note |
 
 ## Verification for this snapshot
@@ -30,5 +30,5 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
   -configuration Debug CODE_SIGNING_ALLOWED=NO test
 ```
-Result: **TEST SUCCEEDED**, 103/103 tests passing, 0 warnings (excluding
+Result: **TEST SUCCEEDED**, 108/108 tests passing, 0 warnings (excluding
 the unrelated, pre-existing "no AppIntents.framework dependency" notice).
